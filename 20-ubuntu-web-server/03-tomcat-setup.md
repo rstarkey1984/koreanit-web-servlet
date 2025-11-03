@@ -45,7 +45,7 @@
 
     > 다운로드한 Tomcat 압축 파일(apache-tomcat-10.1.48.tar.gz)을 /opt/tomcat 디렉토리에 풀어준다.
     ```bash
-    sudo tar -xzf apache-tomcat-10.1.48.tar.gz -C /opt/tomcat
+    mkdir -p /opt/tomcat && sudo tar -xzf apache-tomcat-10.1.48.tar.gz -C /opt/tomcat
     ```
 
 3. 심볼릭 링크 생성:
