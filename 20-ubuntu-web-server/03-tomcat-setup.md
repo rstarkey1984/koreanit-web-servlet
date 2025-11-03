@@ -138,12 +138,11 @@
     webapp-root/
     ├─ index.html (또는 default 문서)
     ├─ <기타 HTML/JSP/이미지 파일들>
-    ├─ WEB-INF/
-    │  ├─ web.xml         ← 웹 애플리케이션 설정 파일 (필수)
-    │  ├─ classes/        ← 컴파일된 .class 파일 (Servlet, Filter 등)
-    │  ├─ lib/            ← JDBC, JSTL 등 .jar 라이브러리
-    │  └─ (기타 설정 파일)
-    └─ META-INF/          (선택) 주로 JAR/WAR에서 사용
+    └─ WEB-INF/
+       ├─ web.xml         ← Web App 설정 (서블릿 매핑 등) 
+       ├─ classes/        ← 컴파일된 .class 파일 
+       ├─ lib/            ← JDBC, JSTL 등 .jar 라이브러리
+       └─ (기타 설정 파일)
     ```
 
 - 각 디렉터리의 역할
@@ -151,10 +150,8 @@
     | ------------------- | ------------------------------------- | ---------------- |
     | `/` (루트)            | HTML, JSP 등 웹에서 보이는 파일                | ✅ 브라우저에서 접근 가능   |
     | `/WEB-INF/`         | 설정 및 보안 디렉터리                          | ❌ 외부 접근 차단       |
-    | `/WEB-INF/web.xml`  | Web App 설정 (서블릿 매핑 등)                 | Tomcat이 내부적으로 읽음 |
-    | `/WEB-INF/classes/` | 자바 클래스 파일 (`.class`, properties 파일 등) | 클래스 로딩 경로        |
-    | `/WEB-INF/lib/`     | `.jar` 라이브러리 저장 위치                    | 자동 classpath 포함  |
-    | `/META-INF/`        | 주로 WAR/JAR 용 메타정보 (`MANIFEST.MF`)     | 선택적              |
+    
+    
 
 
 - 필수 디렉터리 및 파일 생성:
@@ -225,18 +222,18 @@
     ```
 
 - Java servlet 프로젝트에 대한 `VSCode` 설정 파일 만들기
-    - `.vscode/settings.json` 파일생성:
 
-        ```bash
-        mkdir -p /var/www/jsp.servlet.localhost/.vscode && printf '{\n  "java.project.sourcePaths": [\n    "WEB-INF/src"\n  ],\n  "java.project.referencedLibraries": [\n    "/opt/tomcat/latest/lib/servlet-api.jar"\n  ]\n}\n' > /var/www/jsp.servlet.localhost/.vscode/settings.json
-        ```
+    ```bash
+    mkdir -p /var/www/jsp.servlet.localhost/.vscode && printf '{\n  "java.project.sourcePaths": [\n    "WEB-INF/src"\n  ],\n  "java.project.referencedLibraries": [\n    "WEB-INF/lib/*.jar",\n    "/opt/tomcat/latest/lib/servlet-api.jar"\n  ],\n  "java.project.outputPath": "WEB-INF/classes"\n}\n' > /var/www/jsp.servlet.localhost/.vscode/settings.json
+
+    ```
 
 - Tomcat 기본 예제 페이지 복사
     ```bash
     sudo cp -rpf /opt/tomcat/latest/webapps/examples /var/www/jsp.servlet.localhost/test
     ```
 
-- 완성된 전체 구조 (정상 작동하는 형태)
+- 완성된 전체 구조 
 
     ```
     /var/www/jsp.servlet.localhost
@@ -408,4 +405,3 @@
 - http://jsp.servlet.localhost:8080 접속시 Tomcat에서 정상적으로 응답하는지 확인.
 
 - http://jsp.servlet.localhost 접속시 Tomcat에서 정상적으로 응답하는지 확인 ( Nginx 경유 )
-
