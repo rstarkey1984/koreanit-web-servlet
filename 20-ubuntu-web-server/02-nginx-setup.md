@@ -105,7 +105,7 @@
 
          root /var/www/nginx.localhost; # 웹 문서의 기본 루트 디렉토리를 /var/www/localhost 로 설정
 
-         index index.html; # 기본으로 보여줄 파일들 설정 (순서대로 탐색)
+         index test.html; # index.html 은 굳이 적지 않아도 nginx가 기본적으로 찾습니다.
 
          location / { # 모든 요청(URL 경로 / 이하)에 대해 설정
 
@@ -143,7 +143,7 @@
 ## 4. 프로젝트 폴더 만들기
 1. `/var/www/nginx.localhost` 폴더 생성 및 권한 변경
    ```bash
-   sudo mkdir -p /var/www/nginx.localhost && sudo chown ubuntu:ubuntu /var/www/nginx.localhost && touch /var/www/nginx.localhost/index.html
+   sudo mkdir -p /var/www/nginx.localhost && sudo chown ubuntu:ubuntu /var/www/nginx.localhost && touch /var/www/nginx.localhost/test.html
    ```
 
 2. `VSCode`로 `http://nginx.localhost` 도메인에 대한 프로젝트 폴더 열기
@@ -151,7 +151,7 @@
    ```bash
    code /var/www/nginx.localhost/
    ```
-3. Vscode에서 아래 내용을 `index.html` 에 입력 후 저장 ( 저장 단축키 : Ctrl + S )
+3. Vscode에서 아래 내용을 `test.html` 에 입력 후 저장
    ``` html
    <!DOCTYPE html> <!-- 브라우저가 최신 웹 표준에 맞춰 작동하도록 사용함 -->
    <html>
@@ -192,4 +192,4 @@
 > Nginx 는 정적 파일(HTML, CSS, JS 등)을 빠르게 제공하는 웹 서버(Web Server) 입니다.
 
 ## 🧩 실습 / 과제
-- http://myexample.localhost 접속시 Nginx에서 정상적으로 응답하는지 확인.
+- http://mydomain.localhost 접속시 Nginx에서 정상적으로 응답하는지 확인.
