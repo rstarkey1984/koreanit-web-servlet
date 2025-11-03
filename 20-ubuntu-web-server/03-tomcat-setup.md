@@ -112,7 +112,7 @@
 
     - Tomcat 서버가 정상적으로 실행중인지 브라우저를 열어서 확인하기 http://localhost:8080
 
-    - 관리자 아이디/패스워드 생성
+    - 관리자 아이디/패스워드 생성 ( 선택 )
         - `/opt/tomcat/latest/conf/tomcat-users.xml` 파일에 `<tomcat-users>...</tomcat-users>` 태그 안에 아래 내용을 추가합니다.
             ```xml
             <role rolename="manager-gui"/>
@@ -408,3 +408,4 @@
 - http://jsp.servlet.localhost:8080 접속시 Tomcat에서 정상적으로 응답하는지 확인.
 
 - http://jsp.servlet.localhost 접속시 Tomcat에서 정상적으로 응답하는지 확인 ( Nginx 경유 )
+
