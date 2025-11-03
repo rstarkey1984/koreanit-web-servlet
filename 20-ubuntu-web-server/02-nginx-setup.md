@@ -50,9 +50,9 @@
 
 ## 4. 특정 도메인으로 요청이 들어왔을때 서버 블록 설정 ( 가상 호스트 )
 
-1. Nginx 가 HTTP/HTTPS 요청에 대한 기본 설정값들을 `Vscode`로 보려면 아래 명령어를 입력합니다:
+1. Nginx 가 HTTP/HTTPS 요청에 대한 기본 설정값들을 보려면 아래 명령어를 입력합니다:
    ```bash
-   code /etc/nginx/sites-available/default
+   cat /etc/nginx/sites-available/default
    ```
 
    
