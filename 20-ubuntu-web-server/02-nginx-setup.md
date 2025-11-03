@@ -192,4 +192,4 @@
 > Nginx 는 정적 파일(HTML, CSS, JS 등)을 빠르게 제공하는 웹 서버(Web Server) 입니다.
 
 ## 🧩 실습 / 과제
-- http://nginx.localhost 접속시 Nginx에서 정상적으로 응답하는지 확인.
+- http://myexample.localhost 접속시 Nginx에서 정상적으로 응답하는지 확인.
