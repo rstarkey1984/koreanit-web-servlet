@@ -72,7 +72,7 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
          ![아이디패스워드입력](https://lh3.googleusercontent.com/d/1n87lsF_ChuQIRtmV36s4EsSsELtsrd3D)
 
          이 단계에서 생성된 계정이 기본 로그인 사용자가 됩니다.
-         (나중에 ubuntu config --default-user <user> 로 바꿀 수 있음)
+         (나중에 `ubuntu config --default-user <user>` 로 바꿀 수 있음)
       
 
 - Ubuntu 서버 설정:
@@ -103,7 +103,7 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
       ```bash
       cat /etc/wsl.conf
       ```
-      ```
+      ```{content: }
       [boot]
       systemd=true
 
@@ -115,7 +115,7 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
       generateHosts=false
       ```
          
-      - `systemd=true` : Ubuntu 부팅시 자동으로 `systemd`에 등록된 서비스(웹서버,디비서버 등) 시작하려면 `true` 아니면 `false`
+      - `systemd=true` : ubuntu 부팅시 자동으로 `systemd`에 등록된 서비스(웹서버,디비서버 등) 시작하려면 `true` 아니면 `false`
 
       - `default=ubuntu` : Ubuntu Shell 접속시 자동으로 로그인 할 사용자 이름입니다.
 
