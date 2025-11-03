@@ -225,12 +225,6 @@
 
     ```bash
     mkdir -p /var/www/jsp.servlet.localhost/.vscode && printf '{\n  "java.project.sourcePaths": [\n    "WEB-INF/src"\n  ],\n  "java.project.referencedLibraries": [\n    "WEB-INF/lib/*.jar",\n    "/opt/tomcat/latest/lib/servlet-api.jar"\n  ],\n  "java.project.outputPath": "WEB-INF/classes"\n}\n' > /var/www/jsp.servlet.localhost/.vscode/settings.json
-
-    ```
-
-- Tomcat 기본 예제 페이지 복사
-    ```bash
-    sudo cp -rpf /opt/tomcat/latest/webapps/examples /var/www/jsp.servlet.localhost/test
     ```
 
 - 완성된 전체 구조 
@@ -238,7 +232,6 @@
     ```
     /var/www/jsp.servlet.localhost
     ├── index.html
-    ├── test/                      # 테스트용 폴더 (원하면 삭제해도 무방)
     └── WEB-INF/
         ├── web.xml                # Web Application 설정 파일
         ├── classes/               # 컴파일된 .class 파일 저장
