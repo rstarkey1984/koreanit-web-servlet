@@ -131,45 +131,12 @@
             code /opt/tomcat/latest/conf/tomcat-users.xml
             ```
 
-
-## 5. 가상호스트 설정  
-
--  `server.xml`에서 Host 추가 ( 예: `jsp.servlet.localhost` 도메인 )
-    > `*.localhost` 도메인은 OS(운영체제)와 브라우저가 전부 자동으로 `127.0.0.1`로 처리되고 "내 컴퓨터 자신"을 가리키는 네트워크 주소입니다.
-
-- VScode 로 `server.xml` 파일 열기:
-
-    ```bash
-    code /opt/tomcat/latest/conf/server.xml
-    ```
-
-- 아래 내용을 `<Engine>...</Engine>` 안에 추가
-
-    ```xml
-    <Host name="jsp.servlet.localhost">
-        <Context path="/" docBase="/var/www/jsp.servlet.localhost" />
-    </Host>
-    ```
-
-    | 항목                 | 의미                   |
-    | ------------------------------------------ | ------------------------------------------------------ |
-    | `<Host name="jsp.servlet.localhost">` |  HTTP요청 헤더값에 Host가 `jsp.servlet.localhost` 가 맞다면, |
-    | `<Context>`                                | 어떤 URL 경로가 어떤 폴더(docBase)와 연결될지 지정하는 역할                     |
-    | `path="/"`                                 | 기본 경로 (`/`) → 웹사이트의 최상위 URL                            |
-    | `docBase="/var/www/jsp.servlet.localhost"` | 실제 파일이 저장된 위치 (WAR가 아닌 폴더 직접 설정 방식)                    |
-
-
-- Tomcat 서버 재시작:
-    ```bash
-    sudo systemctl restart tomcat
-    ```
-
-## 6. 웹 어플리케이션 디렉터리 생성 및 설정 
+## 5. 웹 어플리케이션 디렉터리 생성 및 설정 
 
 - Tomcat은 다음과 같은 디렉터리 구조를 가지면 정상적인 Web Application으로 인식합니다:
     ```
     webapp-root/
-    ├─ index.jsp (또는 default 문서)
+    ├─ index.html (또는 default 문서)
     ├─ <기타 HTML/JSP/이미지 파일들>
     ├─ WEB-INF/
     │  ├─ web.xml         ← 웹 애플리케이션 설정 파일 (필수)
@@ -283,6 +250,49 @@
     ```
 
 
+## 6. 가상호스트 설정  
+
+>Tomcat에서 가상호스트(Virtual Host) 구조로 웹 애플리케이션을 운영할 때, `<Host>`
+`appBase`, `<Context path=""/>`에 따른 `docBase` 의 역할과 관리 방법을 정확히 이해하면 훨씬 안정적이고 체계적으로 운영할 수 있습니다.
+
+
+
+
+
+
+-  `server.xml`에서 Host 추가 ( 예: `jsp.servlet.localhost` 도메인 )
+    > `*.localhost` 도메인은 OS(운영체제)와 브라우저가 전부 자동으로 `127.0.0.1`로 처리되고 "내 컴퓨터 자신"을 가리키는 네트워크 주소입니다.
+
+- VScode 로 `server.xml` 파일 열기:
+
+    ```bash
+    code /opt/tomcat/latest/conf/server.xml
+    ```
+
+- 아래 내용을 `<Engine>...</Engine>` 안에 추가
+
+    ```xml
+    <Host name="jsp.servlet.localhost" appBase="webapps/jsp.servlet.localhost">
+        <Context docBase="/var/www/jsp.servlet.localhost" />
+    </Host>
+    ```
+
+    | 항목                | 의미 | 사용 목적     |
+    | ----------------- | ------------------ | --- |
+    | `<host` **name**   | 가상호스트 이름    |  HTTP 요청의 Host 헤더값을 기준으로 어떤 가상호스트로 연결할지 결정한다 |
+    | `<host` **appBase**   | 기본 디렉터리 |  Tomcat 이 자동으로 감시·배포하는 내부 관리용 디렉터리. |
+    | `<Context` **docBase**       | 실제 파일이 있는 위치 | 작업폴더를 외부 경로나 특정 위치에 둘 때 직접 지정 |
+
+- appBase 폴더 만들기
+    ```bash
+    mkdir -p /opt/tomcat/latest/webapps/jsp.servlet.localhost
+    ```
+
+- Tomcat 서버 재시작:
+    ```bash
+    sudo systemctl restart tomcat
+    ```
+
 - 브라우저에서 http://jsp.servlet.localhost:8080/ 열기
     - 흰색 빈 페이지가 뜨면 정상. 404 에러 페이지가 뜬다면 문제 있음.
 
@@ -293,7 +303,7 @@
 
     
 
-3. `index.html` 페이지 작성 
+- `index.html` 페이지 작성 
 
     - `VSCode`로 프로젝트 디렉터리 열기 
         ```bash
