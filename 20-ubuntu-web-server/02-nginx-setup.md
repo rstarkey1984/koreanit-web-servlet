@@ -143,13 +143,13 @@
 ## 4. 프로젝트 폴더 만들기
 1. `/var/www/nginx.localhost` 폴더 생성 및 권한 변경
    ```bash
-   sudo mkdir -p /var/www/nginx.localhost && sudo chown ubuntu:ubuntu /var/www/nginx.localhost
+   sudo mkdir -p /var/www/nginx.localhost && sudo chown ubuntu:ubuntu /var/www/nginx.localhost && touch /var/www/nginx.localhost/index.html
    ```
 
-2. Vscode로 `index.html` 파일 생성 후 편집기로 열기
+2. `VSCode`로 `http://nginx.localhost` 도메인에 대한 프로젝트 폴더 열기
 
    ```bash
-   code /var/www/nginx.localhost/index.html
+   code /var/www/nginx.localhost/
    ```
 3. Vscode에서 아래 내용을 `index.html` 에 입력 후 저장 ( 저장 단축키 : Ctrl + S )
    ``` html
