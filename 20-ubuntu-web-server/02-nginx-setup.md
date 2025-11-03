@@ -103,7 +103,7 @@
          listen 80; # IPv4에서 포트 80으로 요청을 수신
          listen [::]:80; # IPv6에서 포트 80으로 요청을 수신
 
-         server_name nginx.localhost; # 도메인을 nginx.localhost로 지정
+         server_name nginx.localhost; # 요청헤더값의 HOST 정보가 nginx.localhost
 
          charset utf-8; # 클라이언트에 전달되는 콘텐츠의 기본 문자 인코딩을 UTF-8로 설정
 
