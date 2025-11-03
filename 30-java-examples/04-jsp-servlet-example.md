@@ -2,7 +2,7 @@
 
 ## 🧩 실습 / 과제
 
-## 1. 서버에서 프로젝트 디렉터리 만들기 `/www/var/example.localhost`
+## 1. 서버에서 `/www/var/example.localhost` 웹 어플리케이션 디렉터리 생성 및 설정 
 
 ## 2. Tomcat `/opt/tomcat/latest/conf/server.xml` 에서 `example.localhost` 가상호스트 구성
 
@@ -10,4 +10,4 @@
 
 ## 4. `VSCode` 에서 빌드 & Tomcat 재시작
 
-## 5. http://example.localhost   
+## 5. http://example.localhost
