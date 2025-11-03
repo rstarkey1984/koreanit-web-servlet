@@ -426,6 +426,6 @@ public class HelloServlet extends HttpServlet {
 
 
 ## 🧩 실습 / 과제
-- 브라우저에서 `web.xml` 매핑으로 작성된 페이지 호출하기 http://jsp.servlet.localhost:8080/hello_01
+- 브라우저에서 `web.xml` 매핑으로 작성된 페이지 호출하기 http://jsp.servlet.localhost/hello_01
 
-- 브라우저에서 `@Annotation` 작성된 페이지 호출하기 http://jsp.servlet.localhost:8080/hello_02
+- 브라우저에서 `@Annotation` 작성된 페이지 호출하기 http://jsp.servlet.localhost/hello_02
