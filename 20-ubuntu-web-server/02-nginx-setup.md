@@ -89,13 +89,13 @@
 
       > `localhost` 도메인은 OS(운영체제)와 브라우저가 전부 자동으로 `127.0.0.1`로 처리되고 "내 컴퓨터 자신"을 가리키는 네트워크 주소입니다.  
 
-   - Vscode 에서 생성된 `localhost` 파일 열기:
+   - Vscode 로 `nginx` 디렉터리 열기:
       
       ```bash
-      code /etc/nginx/sites-available/nginx.localhost
+      code /etc/nginx/
       ```
    
-   - `/etc/nginx/sites-available/localhost` 파일에 아래 내용을 입력:
+   - `/sites-available/localhost` 파일에 아래 내용을 입력:
       ```nginx
       server {
          listen 80; # IPv4에서 포트 80으로 요청을 수신
