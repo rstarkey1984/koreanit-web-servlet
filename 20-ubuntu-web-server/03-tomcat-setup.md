@@ -276,11 +276,11 @@
 
     | 항목                | 의미 | 사용 목적     |
     | ----------------- | ------------------ | --- |
-    | `<host` **name**   | 가상호스트 이름    |  HTTP 요청의 Host 헤더값을 기준으로 어떤 가상호스트로 연결할지 결정한다 |
-    | `<host` **appBase**   | 기본 디렉터리 |  Tomcat 이 자동으로 감시·배포하는 내부 관리용 디렉터리. |
+    | `<Host` **name**   | 가상호스트 이름    |  HTTP 요청의 Host 헤더값을 기준으로 어떤 가상호스트로 연결할지 결정한다 |
+    | `<Host` **appBase**   | 기본 디렉터리 |  Tomcat 이 자동으로 감시·배포하는 내부 관리용 디렉터리. |
     | `<Context` **docBase**       | 실제 파일이 있는 위치 | 작업폴더를 외부 경로나 특정 위치에 둘 때 직접 지정 |
 
-- appBase 폴더 만들기
+- `appBase` 폴더 `webapps/jsp.servlet.localhost` 생성
     ```bash
     mkdir -p /opt/tomcat/latest/webapps/jsp.servlet.localhost
     ```
@@ -300,7 +300,7 @@
 
     
 
-- `index.html` 페이지 작성 
+- `http://jsp.servlet.localhost:8080/index.html` 페이지 작성 
 
     - `VSCode`로 프로젝트 디렉터리 열기 
         ```bash
