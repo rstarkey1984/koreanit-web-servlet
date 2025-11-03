@@ -83,18 +83,17 @@ Java Servlet 작동 방식을 알아보자.
 
   ### 1. `web.xml`을 이용한 매핑 예제
 
-  - `VSCode`로 웹 어플리케이션 폴더 열기:
-
-    ```bash
-    code /var/www/jsp.servlet.localhost/
-    ```
-
   - `HelloServlet_01.java` 파일 생성:
 
     ```bash
     touch /var/www/jsp.servlet.localhost/WEB-INF/src/HelloServlet_01.java
     ```
 
+  - `VSCode`로 프로젝트 열기:
+
+    ```bash
+    code /var/www/jsp.servlet.localhost/
+    ```
   
 
   - `/WEB-INF/src/HelloServlet_01.java` 파일내용 입력:
@@ -139,9 +138,7 @@ Java Servlet 작동 방식을 알아보자.
 
 
   - `/WEB-INF/web.xml` 파일 열어서 → `<web-app>...</web-app>` 태그 안에 내용 추가
-    ```bash
-    code /var/www/jsp.servlet.localhost/
-    ```
+
     ```xml
     <!-- 1. Servlet 이름과 클래스(.class 파일)를 연결하는 설정 -->
     <servlet>
@@ -179,8 +176,7 @@ Java Servlet 작동 방식을 알아보자.
     ```  
 
   - `/WEB-INF/src/HelloServlet_02.java` 파일 찾아서 아래 내용 입력:
-    ```java
-    
+    ```java    
     import jakarta.servlet.http.*; // 서블릿 관련 HttpServlet, HttpServletRequest, HttpServletResponse 포함
     import java.io.IOException; // 입출력 작업 중 발생할 수 있는 예외 처리를 위해 필요한 클래스
     import java.io.PrintWriter;
@@ -241,12 +237,18 @@ Java Servlet 작동 방식을 알아보자.
 - Tomcat 서버 재시작 ( .class 파일이 변경되면 필요 )
 
   ```bash
-  sudo service tomcat restart
+  sudo systemd restart tomcat
   ```
+
+- 배포가 완료됐으니 위에서 매핑한것들이 잘 동작하는지 확인
+
+  - 브라우저에서 `web.xml` 매핑으로 작성된 페이지 호출하기 http://jsp.servlet.localhost/hello_01
+
+  - 브라우저에서 `@Annotation` 작성된 페이지 호출하기 http://jsp.servlet.localhost/hello_02
 
 ## 4. `VSCode` 에서 빌드 & Tomcat 재시작
 
-1. `VSCode` 전용 빌드/자동화 정의 파일 만들기 ( 아래내용을 복사해서 실행 ):
+1. `VSCode` 전용 빌드/자동화 정의 파일 만들기
 
     ```bash
     mkdir -p /var/www/jsp.servlet.localhost/.vscode && cat << 'EOF' > /var/www/jsp.servlet.localhost/.vscode/tasks.json
@@ -426,6 +428,3 @@ public class HelloServlet extends HttpServlet {
 
 
 ## 🧩 실습 / 과제
-- 브라우저에서 `web.xml` 매핑으로 작성된 페이지 호출하기 http://jsp.servlet.localhost/hello_01
-
-- 브라우저에서 `@Annotation` 작성된 페이지 호출하기 http://jsp.servlet.localhost/hello_02
