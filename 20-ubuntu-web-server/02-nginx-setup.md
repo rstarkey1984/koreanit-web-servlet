@@ -50,7 +50,7 @@
 
 ## 4. 특정 도메인으로 요청이 들어왔을때 서버 블록 설정 ( 가상 호스트 )
 
-1. Nginx 가 HTTP/HTTPS 요청에 대한 기본 설정값들을 보려면 아래 명령어를 입력합니다:
+1. Nginx 가 HTTP/HTTPS 요청에 대한 기본 설정값들을 `Vscode`로 보려면 아래 명령어를 입력합니다:
    ```bash
    cat /etc/nginx/sites-available/default
    ```
@@ -74,9 +74,7 @@
 
       }
    }
-   ```
-
-   
+   ```   
 
 3. 특정 도메인으로 요청이 들어오면 동작하는 서버 블록 파일 만들기.
 
@@ -89,13 +87,13 @@
 
       > `localhost` 도메인은 OS(운영체제)와 브라우저가 전부 자동으로 `127.0.0.1`로 처리되고 "내 컴퓨터 자신"을 가리키는 네트워크 주소입니다.  
 
-   - Vscode 로 `nginx` 디렉터리 열기:
+   - `Vscode` 로 `Nginx` 설정 디렉터리 열기:
       
       ```bash
       code /etc/nginx/
       ```
    
-   - `/sites-available/localhost` 파일에 아래 내용을 입력:
+   - /etc/nginx/`sites-available/localhost` 파일에 아래 내용을 입력:
       ```nginx
       server {
          listen 80; # IPv4에서 포트 80으로 요청을 수신
@@ -116,7 +114,7 @@
          }
       }
       ``` 
-   - 실제로 nginx 에서 참조하는 설정파일 경로는 `/etc/nginx/sites-enabled/` 이므로 링크 파일 생성      
+   - 실제 동작하는 Nginx 서버에서 참조하는 설정파일 경로는 `/etc/nginx/sites-enabled/` 이므로 링크 파일 생성      
       ```bash
       sudo ln -s /etc/nginx/sites-available/nginx.localhost /etc/nginx/sites-enabled/nginx.localhost
       ```
