@@ -98,4 +98,4 @@ JSP는 작동 방식을 알아보자.
  
 
 ## 🧩 실습 / 과제
-- 브라우저에서 JSP로 작성된 페이지 호출하기 http://jsp.servlet.localhost:8080/helloJSP.jsp?name=%EC%95%84%EB%AC%B4%EA%B0%9C
+- 브라우저에서 JSP로 작성된 페이지 호출하기 http://jsp.servlet.localhost/helloJSP.jsp?name=%EC%95%84%EB%AC%B4%EA%B0%9C
