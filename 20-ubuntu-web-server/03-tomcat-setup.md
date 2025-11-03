@@ -45,7 +45,7 @@
 
     > 다운로드한 Tomcat 압축 파일(apache-tomcat-10.1.48.tar.gz)을 /opt/tomcat 디렉토리에 풀어준다.
     ```bash
-    mkdir -p /opt/tomcat && sudo tar -xzf apache-tomcat-10.1.48.tar.gz -C /opt/tomcat
+    sudo mkdir -p /opt/tomcat && sudo tar -xzf apache-tomcat-10.1.48.tar.gz -C /opt/tomcat
     ```
 
 3. 심볼릭 링크 생성:
@@ -408,3 +408,4 @@
 - http://jsp.servlet.localhost:8080 접속시 Tomcat에서 정상적으로 응답하는지 확인.
 
 - http://jsp.servlet.localhost 접속시 Tomcat에서 정상적으로 응답하는지 확인 ( Nginx 경유 )
+
