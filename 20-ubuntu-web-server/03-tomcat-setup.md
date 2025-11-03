@@ -336,9 +336,60 @@
 
     4. 브라우저에서 http://jsp.servlet.localhost:8080 열기
 
+## 7. Nginx 를 리버스 프록시 서버로 사용하기
+> 클라이언트(브라우저)의 요청을 직접 웹 애플리케이션 서버(Spring, Node, Tomcat 등)에 보내는 대신, Nginx가 요청을 먼저 받고 대신 전달해주는 방식입니다.
+
+- Nginx 설정파일 생성 후 ubuntu 사용자에게 파일 수정 권한 변경:
+      
+
+    ```bash
+    sudo touch /etc/nginx/sites-available/jsp.servlet.localhost && sudo chown ubuntu:ubuntu /etc/nginx/sites-available/jsp.servlet.localhost
+    ```
+
+    > `localhost` 도메인은 OS(운영체제)와 브라우저가 전부 자동으로 `127.0.0.1`로 처리되고 "내 컴퓨터 자신"을 가리키는 네트워크 주소입니다.  
+
+- Vscode 에서 생성된 `localhost` 파일 열기:
+    
+    ```bash
+    code /etc/nginx/sites-available/jsp.servlet.localhost
+    ```
+
+- `/etc/nginx/sites-available/localhost` 파일에 아래 내용을 입력:
+    ```nginx
+    server {
+        listen 80; # IPv4에서 포트 80으로 요청을 수신
+        listen [::]:80; # IPv6에서 포트 80으로 요청을 수신
+
+        server_name jsp.servlet.localhost; # 도메인을 jsp.servlet.localhost 로 지정
+
+        charset utf-8; # 클라이언트에 전달되는 콘텐츠의 기본 문자 인코딩을 UTF-8로 설정
+
+        location / {
+            proxy_pass http://127.0.0.1:8080;   # Tomcat 서버
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+    ``` 
+- 실제로 nginx 에서 참조하는 설정파일 경로는 `/etc/nginx/sites-enabled/` 이므로 링크 파일 생성      
+    ```bash
+    sudo ln -s /etc/nginx/sites-available/jsp.servlet.localhost /etc/nginx/sites-enabled/jsp.servlet.localhost
+    ```
+    > /etc/nginx/sites-available와 /etc/nginx/sites-enabled 구조를 사용하는 이유는 여러 도메인/사이트를 운영할 때 유지보수에 용이하기 때문에 Debian 계열 Nginx 배포판의 특징입니다.
+
+- Nginx 재시작
+    ```bash
+    sudo systemctl restart nginx
+    ```
+    > `systemctl` 는 `systemd` 로 서비스(Tomcat, Nginx 등)를 제어하기 위한 명령어 도구 입니다.
+
 
 ## 💡 **요약정리**  
 > Tomcat 은 Java 기반 웹 애플리케이션을 실행하는 WAS(Web Application Server) 입니다.
 
 ## 🧩 실습 / 과제
 - http://jsp.servlet.localhost:8080 접속시 Tomcat에서 정상적으로 응답하는지 확인.
+
+- http://jsp.servlet.localhost 접속시 Tomcat에서 정상적으로 응답하는지 확인 ( Nginx 경유 )
