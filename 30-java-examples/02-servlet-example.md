@@ -91,7 +91,7 @@ Java Servlet 작동 방식을 알아보자.
 - `VSCode`로 웹 어플리케이션 폴더 열기:
 
   ```bash
-  code /var/www/jsp.servlet.localhost/WEB-INF/src/HelloServlet_01.java
+  code /var/www/jsp.servlet.localhost/
   ```
 
 - `/WEB-INF/src/HelloServlet_01.java` 파일내용 입력:
@@ -172,7 +172,7 @@ Java Servlet 작동 방식을 알아보자.
 - `VSCode`로 웹 어플리케이션 폴더 열기:
 
   ```bash
-  code /var/www/jsp.servlet.localhost/WEB-INF/src/HelloServlet_02.java
+  code /var/www/jsp.servlet.localhost/
   ```
 
 - `/WEB-INF/src/HelloServlet_02.java` 파일 찾아서 아래 내용 입력:
