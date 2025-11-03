@@ -325,7 +325,7 @@
         </head>
         <body>
             <h1>Hello, Tomcat!</h1>
-            <p>이 페이지는 Tomcat에서 /opt/tomcat/latest/webapps/jsp.servlet.localhost/ROOT/index.html 파일을 불러오고 있습니다.</p>
+            <p>이 페이지는 Tomcat에서 /var/www/jsp.servlet.localhost/index.html 파일을 불러오고 있습니다.</p>
             <p>현재시간 : <span id="date_text"></span><button id="myButton">클릭</button></p>
             
             
@@ -360,13 +360,13 @@
 
     > `localhost` 도메인은 OS(운영체제)와 브라우저가 전부 자동으로 `127.0.0.1`로 처리되고 "내 컴퓨터 자신"을 가리키는 네트워크 주소입니다.  
 
-- Vscode 에서 생성된 `localhost` 파일 열기:
+- `VSCode` 로 `Nginx` 설정 디렉터리 열기:
     
     ```bash
-    code /etc/nginx/sites-available/jsp.servlet.localhost
+    code /etc/nginx/
     ```
 
-- `/etc/nginx/sites-available/localhost` 파일에 아래 내용을 입력:
+- `/sites-available/jsp.servlet.localhost` 파일에 아래 내용을 입력:
     ```nginx
     server {
         listen 80; # IPv4에서 포트 80으로 요청을 수신
@@ -387,7 +387,7 @@
     ``` 
 - 실제로 nginx 에서 참조하는 설정파일 경로는 `/etc/nginx/sites-enabled/` 이므로 링크 파일 생성      
     ```bash
-    sudo ln -s /etc/nginx/sites-available/jsp.servlet.localhost /etc/nginx/sites-enabled/jsp.servlet.localhost
+    sudo ln -s /etc/nginx/sites-available/jsp.servlet.localhost /etc/nginx/sites-enabled/
     ```
     > /etc/nginx/sites-available와 /etc/nginx/sites-enabled 구조를 사용하는 이유는 여러 도메인/사이트를 운영할 때 유지보수에 용이하기 때문에 Debian 계열 Nginx 배포판의 특징입니다.
 
@@ -397,11 +397,12 @@
     ```
     > `systemctl` 는 `systemd` 로 서비스(Tomcat, Nginx 등)를 제어하기 위한 명령어 도구 입니다.
 
+- http://jsp.servlet.localhost 페이지 확인
+
 
 ## 💡 **요약정리**  
 > Tomcat 은 Java 기반 웹 애플리케이션을 실행하는 WAS(Web Application Server) 입니다.
+> 
 
 ## 🧩 실습 / 과제
-- http://jsp.servlet.localhost:8080 접속시 Tomcat에서 정상적으로 응답하는지 확인.
-
-- http://jsp.servlet.localhost 접속시 Tomcat에서 정상적으로 응답하는지 확인 ( Nginx 경유 )
+- http://java.localhost 접속시 http://jsp.servlet.localhost:8080 주소로 요청 되도록 nginx 설정하기
