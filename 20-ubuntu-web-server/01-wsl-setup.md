@@ -5,10 +5,10 @@
 Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서버 개발환경 구성하기
 
 - 아래 단계를 진행하기 전 `VSCode`가 없다면,
-   - [VSCode 다운로드](https://code.visualstudio.com/){:target="_blank"} 에서 설치
+   - [VSCode 다운로드](https://code.visualstudio.com/) 에서 설치
    - 확장 프로그램 설치
-      - [VSCode WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl){:target="_blank"}
-      - [VSCode Extension Pack for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack){:target="_blank"}
+      - [VSCode WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl)
+      - [VSCode Extension Pack for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack)
 
 ## 💡 주요 내용
 - WSL( Windows Subsystem Linux ) 소개 및 설치과정
