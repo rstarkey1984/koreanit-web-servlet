@@ -56,7 +56,7 @@
 
 4. 권한 설정 변경:
     ```bash
-    sudo chmod -R 755 /opt/tomcat && sudo chmod +x /opt/tomcat/latest/bin/*.sh
+    sudo chmod -R 755 /opt/tomcat && sudo chown ubuntu:ubuntu -R /opt/tomcat && sudo chmod +x /opt/tomcat/latest/bin/*.sh
     ```
 
 5. Tomcat 서비스 등록 ( `systemd`를 이용하여 부팅 시 자동 실행 )
@@ -408,4 +408,3 @@
 - http://jsp.servlet.localhost:8080 접속시 Tomcat에서 정상적으로 응답하는지 확인.
 
 - http://jsp.servlet.localhost 접속시 Tomcat에서 정상적으로 응답하는지 확인 ( Nginx 경유 )
-
