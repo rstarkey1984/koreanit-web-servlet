@@ -103,7 +103,7 @@
 
          charset utf-8; # 클라이언트에 전달되는 콘텐츠의 기본 문자 인코딩을 UTF-8로 설정
 
-         root /var/www/nginx.localhost; # 웹 문서의 기본 루트 디렉토리를 /var/www/localhost 로 설정
+         root /var/www/nginx.localhost; # 웹 문서의 기본 루트 디렉토리를 /var/www/nginx.localhost 로 설정
 
          index test.html; # index.html 은 굳이 적지 않아도 nginx가 기본적으로 찾습니다.
 
