@@ -116,7 +116,7 @@
       ``` 
    - 실제 동작하는 Nginx 서버에서 참조하는 설정파일 경로는 `/etc/nginx/sites-enabled/` 이므로 링크 파일 생성      
       ```bash
-      sudo ln -s /etc/nginx/sites-available/nginx.localhost /etc/nginx/sites-enabled/nginx.localhost
+      sudo ln -s /etc/nginx/sites-available/nginx.localhost /etc/nginx/sites-enabled/
       ```
       > /etc/nginx/sites-available와 /etc/nginx/sites-enabled 구조를 사용하는 이유는 여러 도메인/사이트를 운영할 때 유지보수에 용이하기 때문에 Debian 계열 Nginx 배포판의 특징입니다.
 
