@@ -20,11 +20,15 @@
 1. [Java Servlet / JSP 소개](30-java-examples/01-servlet-jsp-intro.md)
 2. [Java Servlet 작동방식](30-java-examples/02-servlet-example.md)
 3. [JSP 작동방식](30-java-examples/03-jsp-example.md)
-4. [Tomcat + JSP/Servet 으로 동작하는 `example.localhost` 사이트 만들기](30-java-examples/04-jsp-servlet-example.md)
+4. [JSP/Servlet을 같이 사용하는 방법](30-java-examples/04-jsp-servlet-example.md)
+5. [Tomcat + JSP/Servet 으로 동작하는 `example.localhost` 사이트 만들기](30-java-examples/05-jsp-servlet-website.md)
 
 ### 4️⃣ 전체적인 웹의 동작구조
 1. [브라우저에서 `www.google.com` 을 입력했을 때의 전체 흐름](40-web-structure/01-web-flow.md)
----
+
+
+### 실습
+
 
 ## 🎯 학습 목표 
 - 웹의 개념에 대해 이해한다.
