@@ -27,17 +27,17 @@ Java Servlet 작동 방식을 알아보자.
   ```xml
   <Connector port="8080" protocol="HTTP/1.1" ... />
   ...
-  <Host name="jsp.servlet.localhost">            
-      <Context path="/" docBase="/var/www/jsp.servlet.localhost" />
+  <Host name="<subdomain>.localhost">            
+      <Context path="/" docBase="/var/www/<subdomain>.localhost" />
   </Host>
   ...
   ```
 
   | 단계                | 동작 내용                                                |
   | ----------------- | ---------------------------------------------------- |
-  | 1️⃣ 클라이언트 요청      | 브라우저에서 `http://jsp.servlet.localhost:8080/hello` 요청        |
+  | 1️⃣ 클라이언트 요청      | 브라우저에서 `http://<subdomain>.localhost:8080/hello` 요청        |
   | 2️⃣ Tomcat이 요청 수신 | `server.xml`의 `<Connector>`를 통해 8080 포트를 감시      |
-  | 3️⃣ Context 찾기    | URL의 `/` → `/var/www/jsp.servlet.localhost` 프로젝트를 찾음
+  | 3️⃣ Context 찾기    | URL의 `/` → `/var/www/<subdomain>.localhost` 프로젝트를 찾음
   | 4️⃣ Servlet 매핑 확인 | `/hello` 요청이 `web.xml` 혹은 `@WebServlet("/hello")`과 연결됨 |
   | 5️⃣ Servlet 실행    | - 최초 요청 시 `init()` 실행 후 메모리 로드                       |
   |                   | - 이후 매 요청마다 `service()` → `doGet()` 또는 `doPost()` → `destroy()` 실행 |
@@ -86,21 +86,14 @@ Java Servlet 작동 방식을 알아보자.
   - `HelloServlet_01.java` 파일 생성:
 
     ```bash
-    touch /var/www/jsp.servlet.localhost/WEB-INF/src/HelloServlet_01.java
+    touch /var/www/<subdomain>.localhost/WEB-INF/src/HelloServlet_01.java
     ```
-
-  - `VSCode`로 프로젝트 열기:
-
-    ```bash
-    code /var/www/jsp.servlet.localhost/
-    ```
-  
 
   - `/WEB-INF/src/HelloServlet_01.java` 파일내용 입력:
     ```java
     import jakarta.servlet.http.*; // 서블릿 관련 HttpServlet, HttpServletRequest, HttpServletResponse 포함
     import java.io.IOException; // 입출력 작업 중 발생할 수 있는 예외 처리를 위해 필요한 클래스
-    import java.io.PrintWriter;
+    import java.io.PrintWriter; // PrintWriter 클래스를 사용하기 위해 java.io 패키지에서 불러옴
 
     public class HelloServlet_01 extends HttpServlet {
 
@@ -109,6 +102,8 @@ Java Servlet 작동 방식을 알아보자.
         protected void doGet(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {  // IOException은 클라이언트와의 입출력 과정에서 발생할 수 있는 예외
 
+            // 클라이언트(브라우저)에게 응답 데이터를 출력하기 위한 문자 기반 출력 스트림 가져오기
+            // resp.getWriter()는 HTTP 응답(Response)의 본문에 텍스트를 작성할 수 있는 PrintWriter 객체를 반환함
             PrintWriter out = resp.getWriter();
 
             // 응답 데이터를 HTML 형식으로 설정, 문자 인코딩은 UTF-8로 설정
@@ -128,7 +123,7 @@ Java Servlet 작동 방식을 알아보자.
             out.println("</head>");
             out.println("<body>");
             out.println("<h1>안녕, Servlet!</h1>");
-            out.println("<h1>이 페이지는 web.xml에서 매핑되었습니다.</h1>");
+            out.println("<h1>이 페이지는 web.xml에서 매핑되었습니다!</h1>");
             out.println("</body>");
             out.println("</html>");
         }
@@ -164,22 +159,16 @@ Java Servlet 작동 방식을 알아보자.
 
   ### 2. @WebServlet 어노테이션(Annotation)을 이용한 간편 매핑 예제
 
-  - `VSCode`로 웹 어플리케이션 폴더 열기:
-
-    ```bash
-    code /var/www/jsp.servlet.localhost/
-    ```
-
   - `HelloServlet2.java` 파일 생성:
     ```bash
-    touch /var/www/jsp.servlet.localhost/WEB-INF/src/HelloServlet_02.java
+    touch /var/www/<subdomain>.localhost/WEB-INF/src/HelloServlet_02.java
     ```  
 
   - `/WEB-INF/src/HelloServlet_02.java` 파일 찾아서 아래 내용 입력:
     ```java    
     import jakarta.servlet.http.*; // 서블릿 관련 HttpServlet, HttpServletRequest, HttpServletResponse 포함
     import java.io.IOException; // 입출력 작업 중 발생할 수 있는 예외 처리를 위해 필요한 클래스
-    import java.io.PrintWriter;
+    import java.io.PrintWriter; // PrintWriter 클래스를 사용하기 위해 java.io 패키지에서 불러옴
     import jakarta.servlet.annotation.*; // @WebServlet 같은 애노테이션 사용을 위해 필요
 
     // 이 서블릿을 "/hello_02" URL로 매핑 (브라우저에서 /hello_02 로 요청하면 이 클래스가 실행됨)
@@ -191,6 +180,8 @@ Java Servlet 작동 방식을 알아보자.
         protected void doGet(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {  // IOException은 클라이언트와의 입출력 과정에서 발생할 수 있는 예외
 
+            // 클라이언트(브라우저)에게 응답 데이터를 출력하기 위한 문자 기반 출력 스트림 가져오기
+            // resp.getWriter()는 HTTP 응답(Response)의 본문에 텍스트를 작성할 수 있는 PrintWriter 객체를 반환함
             PrintWriter out = resp.getWriter();
 
             // 응답 데이터를 HTML 형식으로 설정, 문자 인코딩은 UTF-8로 설정
@@ -210,7 +201,7 @@ Java Servlet 작동 방식을 알아보자.
             out.println("</head>");
             out.println("<body>");
             out.println("<h1>안녕, Servlet!</h1>");
-            out.println("<h1>이 페이지는 @Annotation으로 매핑되었습니다.</h1>");
+            out.println("<h1>이 페이지는 @Annotation으로 매핑되었습니다!</h1>");
             out.println("</body>");
             out.println("</html>");
         }
@@ -224,15 +215,20 @@ Java Servlet 작동 방식을 알아보자.
 
 - Javac 명령어로 컴파일 해서 /WEB-INF/classes 폴더에 넣기
   ``` bash
-  javac -cp /opt/tomcat/latest/lib/servlet-api.jar: -d /var/www/jsp.servlet.localhost/WEB-INF/classes $(find /var/www/jsp.servlet.localhost/WEB-INF/src/ -name "*.java")
+  javac -cp /usr/share/tomcat10/lib/servlet-api.jar: -d /var/www/<subdomain>.localhost/WEB-INF/classes $(find /var/www/<subdomain>.localhost/WEB-INF/src/ -name "*.java")
   ```
   | 명령어/옵션                                   | 의미                                           |
   | ---------------------------------------- | -------------------------------------------- |
   | `javac`                                  | 자바 소스 파일(.java)을 컴파일하는 명령어                   |
   | `-cp <경로>`                               | 클래스패스(Classpath). 외부 라이브러리 또는 필요한 클래스 위치를 설정 |
-  | `/opt/tomcat/latest/lib/servlet-api.jar` | Tomcat의 Servlet API 라이브러리 (서블릿 개발 시 필수)      |
+  | `/usr/share/tomcat10/lib/servlet-api.jar` | Tomcat의 Servlet API 라이브러리 (서블릿 개발 시 필수)      |
   | `-d <경로>`                                | 컴파일된 `.class` 파일을 저장할 디렉터리 지정                |
   | `$(find <경로> -name "*.java")`            | 지정된 경로에서 모든 `.java` 파일을 찾아서 컴파일 대상으로 전달      |
+
+- Tomcat 실시간 로그 보기 ( 디버깅할때 유용 )
+  ```bash
+  sudo tail -f /var/log/tomcat10/catalina.out
+  ```
 
 - Tomcat 서버 재시작 ( .class 파일이 변경되면 필요 )
 
@@ -242,83 +238,87 @@ Java Servlet 작동 방식을 알아보자.
 
 - 배포가 완료됐으니 위에서 매핑한것들이 잘 동작하는지 확인
 
-  - 브라우저에서 `web.xml` 매핑으로 작성된 페이지 호출하기 http://jsp.servlet.localhost/hello_01
+  - 브라우저에서 `web.xml` 매핑으로 작성된 페이지 호출하기 http://<subdomain>.localhost/hello_01
 
-  - 브라우저에서 `@Annotation` 작성된 페이지 호출하기 http://jsp.servlet.localhost/hello_02
+  - 브라우저에서 `@Annotation` 작성된 페이지 호출하기 http://<subdomain>.localhost/hello_02
 
 ## 4. `VSCode` 에서 빌드 & Tomcat 재시작
 
 1. `VSCode` 전용 빌드/자동화 정의 파일 만들기
 
-    ```bash
-    mkdir -p /var/www/jsp.servlet.localhost/.vscode && cat << 'EOF' > /var/www/jsp.servlet.localhost/.vscode/tasks.json
-    {
-      "version": "2.0.0",
-      "tasks": [
-        {
-          "label": "clean & compile",
-          "type": "shell",
-          "command": "bash",
-          "args": [
-            "-lc",
-            "rm -rf /var/www/jsp.servlet.localhost/WEB-INF/classes && mkdir -p /var/www/jsp.servlet.localhost/WEB-INF/classes && javac -encoding UTF-8 -cp /opt/tomcat/latest/lib/servlet-api.jar:WEB-INF/classes:WEB-INF/lib/* -d /var/www/jsp.servlet.localhost/WEB-INF/classes $(find /var/www/jsp.servlet.localhost/WEB-INF/src/ -name \"*.java\")"
-          ],
-          "problemMatcher": {
-            "owner": "java",
-            "fileLocation": [
-              "absolute"
+    - .vscode 폴더 생성
+      ```bash
+      mkdir -p /var/www/<subdomain>.localhost/.vscode
+      ```
+
+    - tasks.json 파일 생성
+      ```
+      touch /var/www/<subdomain>.localhost/.vscode/tasks.json
+      ```
+
+    - `/var/www/<subdomain>.localhost/.vscode/tasks.json` 편집
+      ```json
+      {
+        "version": "2.0.0",
+        "tasks": [
+          {
+            "label": "clean & compile",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+              "-lc",
+              "rm -rf /var/www/<subdomain>/WEB-INF/classes && mkdir -p /var/www/<subdomain>/WEB-INF/classes && javac -encoding UTF-8 -cp /usr/share/tomcat10/lib/servlet-api.jar:WEB-INF/classes:WEB-INF/lib/* -d /var/www/<subdomain>/WEB-INF/classes $(find /var/www/<subdomain>/WEB-INF/src/ -name \"*.java\")"
             ],
-            "pattern": {
-              "regexp": "^(.*):(\\d+): (error|warning): (.*)$",
-              "file": 1,
-              "line": 2,
-              "severity": 3,
-              "message": 4
-            }
+            "problemMatcher": {
+              "owner": "java",
+              "fileLocation": [
+                "absolute"
+              ],
+              "pattern": {
+                "regexp": "^(.*):(\\d+): (error|warning): (.*)$",
+                "file": 1,
+                "line": 2,
+                "severity": 3,
+                "message": 4
+              }
+            },
+            "group": "build"
           },
-          "group": "build"
-        },
-        {
-          "label": "restart tomcat",
-          "type": "shell",
-          "command": "bash",
-          "args": [
-            "-lc",
-            "sudo systemctl restart tomcat"
-          ]
-        },
-        {
-          "label": "servlet build & restart",
-          "dependsOn": [
-            "clean & compile",
-            "restart tomcat"
-          ],
-          "dependsOrder": "sequence",
-          "group": {
-            "kind": "build",
-            "isDefault": true
+          {
+            "label": "restart tomcat",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+              "-lc",
+              "sudo systemctl restart tomcat10"
+            ]
           },
-          "problemMatcher": []
-        }
-      ]
-    }
-    EOF
-    ```
+          {
+            "label": "servlet build & restart",
+            "dependsOn": [
+              "clean & compile",
+              "restart tomcat"
+            ],
+            "dependsOrder": "sequence",
+            "group": {
+              "kind": "build",
+              "isDefault": true
+            },
+            "problemMatcher": []
+          }
+        ]
+      }
+      ```
 
-2. `VSCode` 에서 파일 내용 확인
-    ```bash
-    code /var/www/jsp.servlet.localhost/.vscode/tasks.json
-    ```
-
-3. `Ctrl` + `Shift` + `P` 를 눌러서 default build task 입력 후 선택
+2. `Ctrl` + `Shift` + `P` 를 눌러서 default build task 입력 후 선택
 
     ![default-build-task](https://lh3.googleusercontent.com/d/1-cQdx3eIBA6iYFcB04xpSbWU0vG15Dfs)
 
-4. servlet build & restart 선택
+3. servlet build & restart 선택
 
     ![servlet-build-restart](https://lh3.googleusercontent.com/d/1Gd7LT6216PYWctP5vOqa-QWTuVuUeFCa?)
 
-5. `Ctrl` + `Shift` + `B` 를 누르면 빌드가 되고, VSCode 아래쪽 패널 터미널 탭에서 `tasks.json` 파일에서 작성한 스크립트가 실행이 됩니다.
+4. `Ctrl` + `Shift` + `B` 를 누르면 빌드가 되고, VSCode 아래쪽 패널 터미널 탭에서 `tasks.json` 파일에서 작성한 스크립트가 실행이 됩니다.
 
     ![servlet-build-restart](https://lh3.googleusercontent.com/d/1D13-HaqOrBDFz_RXGuqq4_8VslDoVXuT?)
 
@@ -425,4 +425,4 @@ public class HelloServlet extends HttpServlet {
 
 
 ## 🧩 실습 / 과제
-1. http://jsp.servlet.localhost/hello_03 서블릿 페이지 만들기
+1. http://`<subdomain>`/hello_03 서블릿 페이지 만들기

@@ -43,13 +43,7 @@ JSP는 작동 방식을 알아보자.
 - `helloJSP.jsp` 파일 생성:
 
   ```bash
-  touch /var/www/jsp.servlet.localhost/helloJSP.jsp  
-  ```
-
-- `VSCode`로 파일 열기:
-
-  ```bash
-  code /var/www/jsp.servlet.localhost/helloJSP.jsp
+  touch /var/www/<subdomain>.localhost/helloJSP.jsp  
   ```
 
 - `helloJSP.jsp` 파일 찾아서 아래 내용 입력:
@@ -98,4 +92,4 @@ JSP는 작동 방식을 알아보자.
  
 
 ## 🧩 실습 / 과제
-- 브라우저에서 JSP로 작성된 페이지 호출하기 http://jsp.servlet.localhost/helloJSP.jsp?name=%EC%95%84%EB%AC%B4%EA%B0%9C
+- 브라우저에서 JSP로 작성된 페이지 호출하기 http://`<subdomain>`.localhost/helloJSP.jsp?name=123

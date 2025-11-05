@@ -37,19 +37,14 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
 1. 프로젝트 안에 디렉터리 및 파일 생성
 
     ```bash
-    mkdir -p /var/www/jsp.servlet.localhost/user/ && mkdir -p /var/www/jsp.servlet.localhost/WEB-INF/src/user
+    mkdir -p /var/www/<subdomain>.localhost/user/ && mkdir -p /var/www/<subdomain>.localhost/WEB-INF/src/user
     ```
 
     ```bash
-    touch /var/www/jsp.servlet.localhost/user/register.jsp && touch /var/www/jsp.servlet.localhost/user/welcome.jsp && touch /var/www/jsp.servlet.localhost/WEB-INF/src/user/RegisterServlet.java
+    touch /var/www/<subdomain>.localhost/user/register.jsp && touch /var/www/<subdomain>.localhost/user/welcome.jsp && touch /var/www/<subdomain>.localhost/WEB-INF/src/user/RegisterServlet.java
     ```
 
-2. `VSCode` 로 프로젝트 열기
-     ```bash
-    code /var/www/jsp.servlet.localhost/
-    ```
-
-3. `/user/register.jsp` 파일 작성
+2. `/user/register.jsp` 파일 작성
     ```html
     <%@ page contentType="text/html; charset=UTF-8" %>
     <!DOCTYPE html>
@@ -156,5 +151,5 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
 
 6. `Ctrl` + `Sfhit` + `B` 로 빌드 후 Tomcat 재시작
 
-7. http://jsp.servlet.localhost/user/register.jsp 에서 동작 확인
+7. http://`<subdomain>`.localhost/user/register.jsp 에서 동작 확인
 

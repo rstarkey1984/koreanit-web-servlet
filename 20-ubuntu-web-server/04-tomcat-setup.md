@@ -31,105 +31,55 @@
 
 - Spring Boot에서도 내장 Tomcat을 기본적으로 사용
 
+## 4. Ubuntu 24.04에서 Tomcat 설치( apt ):
 
-## 4. Ubuntu 24.04에서 Tomcat 설치( apt 사용 ):
-
-1. Tomcat 10.1 버전 다운로드:
-
-    > wget 명령어를 사용하여 Tomcat 10.1.48 버전의 설치 파일(apache-tomcat-10.1.48.tar.gz)을 Apache 공식 서버(dlcdn.apache.org)에서 현재 디렉토리로 다운로드한다.
+1. APT 패키지 목록에서 "tomcat"이라는 키워드가 포함된 패키지를 검색
     ```bash
-    cd /tmp && wget https://dlcdn.apache.org/tomcat/tomcat-10/v10.1.48/bin/apache-tomcat-10.1.48.tar.gz
+    sudo apt-cache search tomcat
     ```
 
-2. 압축 해제:
-
-    > 다운로드한 Tomcat 압축 파일(apache-tomcat-10.1.48.tar.gz)을 /opt/tomcat 디렉토리에 풀어준다.
+2. apt 로 톰캣 설치
     ```bash
-    sudo mkdir -p /opt/tomcat && sudo tar -xzf apache-tomcat-10.1.48.tar.gz -C /opt/tomcat
+    sudo apt install -y tomcat10 tomcat10-*
     ```
 
-3. 심볼릭 링크 생성:
-    > Tomcat 설치 경로를 간단히 접근할 수 있도록 /opt/tomcat/apache-tomcat-10.1.48 → /opt/tomcat/latest 로 심볼릭 링크 생성
+3. 톰캣 구동중인지 확인
     ```bash
-    sudo ln -s /opt/tomcat/apache-tomcat-10.1.48 /opt/tomcat/latest
+    sudo systemctl status tomcat10
     ```
 
-4. 권한 설정 변경:
+4. 파일 소유자 변경
     ```bash
-    sudo chmod -R 755 /opt/tomcat && sudo chown ubuntu:ubuntu -R /opt/tomcat && sudo chmod +x /opt/tomcat/latest/bin/*.sh
+    sudo chown <user>:tomcat /etc/tomcat10/server.xml
+    ```
+    ```bash
+    sudo chown <user>:tomcat /etc/tomcat10/tomcat-users.xml
     ```
 
-5. Tomcat 서비스 등록 ( `systemd`를 이용하여 부팅 시 자동 실행 )
-    > `systemd`는 리눅스에서 서버나 프로그램 같은 서비스를 자동으로 시작·중지하고, 부팅 시 실행되도록 관리해주는 시스템 및 서비스 관리 도구입니다.
+5. Tomcat10 기본 디렉터리 구조 (Ubuntu 24.04, apt 설치 기준)
 
-    - /etc/systemd/system/tomcat.service 파일 생성:
+    | 경로                             | 역할                                                        |
+    | ------------------------------ | --------------------------------------------------------- |
+    | **/var/lib/tomcat10/webapps/** | 실제 웹 애플리케이션이 배포되는 위치 (WAR 파일 넣는 곳)                      |
+    | **/etc/tomcat10/**             | 설정 파일 (`server.xml`, `tomcat-users.xml`, `context.xml` 등) |
+    | **/usr/share/tomcat10/**       | Tomcat 실행 스크립트 및 기본 리소스 (웹 루트 아님)                         |
+    | **/var/log/tomcat10/**         | Tomcat 로그 파일 위치                                           |
+    | **/var/cache/tomcat10/**       | 캐시 파일 저장 위치                                               |
+
+
+5. 관리자 아이디/패스워드 생성 ( 선택 )
+    - `/etc/tomcat10/tomcat-users.xml` 파일에 `<tomcat-users>...</tomcat-users>` 태그 안에 아래 내용을 추가합니다.
+        ```xml
+        <role rolename="manager-gui"/>
+        <role rolename="manager-status"/>
+        <role rolename="admin-gui"/>
+        <user username="admin" password="1234" roles="manager-gui,manager-status,admin-gui"/>
+        ```
+
+        또는,
         ```bash
-        sudo bash -c 'cat > /etc/systemd/system/tomcat.service <<"EOF"
-        [Unit]
-        Description=Apache Tomcat 10 Web Application Container
-        After=network.target
-
-        [Service]
-        Type=forking
-        User=ubuntu
-        Group=ubuntu
-        Environment="JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64"
-        Environment="CATALINA_BASE=/opt/tomcat/latest"
-        Environment="CATALINA_HOME=/opt/tomcat/latest"
-        Environment="CATALINA_PID=/opt/tomcat/latest/temp/tomcat.pid"
-        Environment="CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC"
-        ExecStart=/opt/tomcat/latest/bin/startup.sh
-        ExecStop=/opt/tomcat/latest/bin/shutdown.sh
-        Restart=on-failure
-
-        [Install]
-        WantedBy=multi-user.target
-        EOF'
+        sudo sed -i '/<\/tomcat-users>/i\<role rolename="manager-gui"/>\n<role rolename="manager-status"/>\n<role rolename="admin-gui"/>\n<user username="admin" password="1234" roles="manager-gui,manager-status,admin-gui"/>' /etc/tomcat10/tomcat-users.xml
         ```
-
-    - 서비스 활성화 & 시작:
-        > `systemctl` 는 `systemd`로 서비스(Tomcat, Nginx 등)를 제어하기 위한 명령어 도구 입니다.
-
-        > systemctl이 사용하는 서비스 설정 파일(.service) 변경 사항 반영
-        ```bash        
-        sudo systemctl daemon-reload        
-        ```
-
-        > 부팅 시 Tomcat이 자동으로 실행되도록 설정 (자동 시작 등록)
-        ```bash
-        sudo systemctl enable tomcat
-        ```
-
-        > 지금 즉시 Tomcat 서비스를 시작
-        ```bash
-        sudo systemctl start tomcat
-        ```
-
-        > Tomcat 서비스가 제대로 실행 중인지 상태 확인
-        ```bash
-        sudo systemctl status tomcat
-        ```
-
-    - Tomcat 서버가 정상적으로 실행중인지 브라우저를 열어서 확인하기 http://localhost:8080
-
-    - 관리자 아이디/패스워드 생성 ( 선택 )
-        - `/opt/tomcat/latest/conf/tomcat-users.xml` 파일에 `<tomcat-users>...</tomcat-users>` 태그 안에 아래 내용을 추가합니다.
-            ```xml
-            <role rolename="manager-gui"/>
-            <role rolename="manager-status"/>
-            <role rolename="admin-gui"/>
-            <user username="admin" password="1234" roles="manager-gui,manager-status,admin-gui"/>
-            ```
-
-            또는,
-            ```bash
-            sudo sed -i '/<\/tomcat-users>/i\<role rolename="manager-gui"/>\n<role rolename="manager-status"/>\n<role rolename="admin-gui"/>\n<user username="admin" password="1234" roles="manager-gui,manager-status,admin-gui"/>' /opt/tomcat/latest/conf/tomcat-users.xml
-            ```
-
-        - `/opt/tomcat/latest/conf/tomcat-users.xml` 파일 보기
-            ```bash
-            code /opt/tomcat/latest/conf/tomcat-users.xml
-            ```
 
 ## 5. 웹 어플리케이션 디렉터리 생성 및 설정 
 
@@ -137,7 +87,6 @@
     ```
     webapp-root/
     ├─ index.html (또는 default 문서)
-    ├─ <기타 HTML/JSP/이미지 파일들>
     └─ WEB-INF/
        ├─ web.xml         ← Web App 설정 (서블릿 매핑 등) 
        ├─ classes/        ← 컴파일된 .class 파일 
@@ -155,13 +104,44 @@
 
 
 - 필수 디렉터리 및 파일 생성:
-    ```bash
-    sudo mkdir -p /var/www/jsp.servlet.localhost && sudo chown ubuntu:ubuntu /var/www/jsp.servlet.localhost && mkdir -p /var/www/jsp.servlet.localhost/WEB-INF/classes && mkdir -p /var/www/jsp.servlet.localhost/WEB-INF/lib && mkdir -p /var/www/jsp.servlet.localhost/WEB-INF/src && touch /var/www/jsp.servlet.localhost/index.html  
-    ```
+    1. 웹 루트 작업 폴더 생성
 
-- `web.xml` 파일 생성:    
-    ```bash
-    cat > /var/www/jsp.servlet.localhost/WEB-INF/web.xml << 'EOF'
+        ```bash
+        sudo mkdir -p /var/www/<mysubdomain>.localhost
+        ```
+    2. 권한 변경
+
+        ```bash
+        sudo chown <user>:<group> /var/www/<mysubdomain>.localhost
+        ```
+    3. classes 디렉터리 생성
+
+        ```bash
+        mkdir -p /var/www/<mysubdomain>.localhost/WEB-INF/classes
+        ```
+    4. lib 디렉터리 생성 
+
+        ```bash
+        mkdir -p /var/www/<mysubdomain>.localhost/WEB-INF/lib
+        ```
+    5. src 디렉터리 생성
+
+        ```bash
+        mkdir -p /var/www/<mysubdomain>.localhost/WEB-INF/src
+        ```
+    6. web.xml 파일 생성 
+        ```bash
+        touch /var/www/<mysubdomain>.localhost/WEB-INF/web.xml
+        ```
+    7. index.html 파일 생성
+
+        ```bash
+        touch /var/www/<mysubdomain>.localhost/index.html  
+        ```
+
+- `web.xml` 파일 내용 편집:    
+    
+    ```xml
     <web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
@@ -193,7 +173,6 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
-
     <!-- ===================== 민감 폴더 접근 차단 설정 ===================== -->
     <!-- 웹브라우저로 아래 경로(.vscode, .git, .idea 등)에 직접 접근하지 못하도록 차단 -->
     <security-constraint>
@@ -217,20 +196,39 @@
     </security-constraint>
 
     </web-app>
-
-    EOF
     ```
 
 - Java servlet 프로젝트에 대한 `VSCode` 설정 파일 만들기
 
-    ```bash
-    mkdir -p /var/www/jsp.servlet.localhost/.vscode && printf '{\n  "java.project.sourcePaths": [\n    "WEB-INF/src"\n  ],\n  "java.project.referencedLibraries": [\n    "WEB-INF/lib/*.jar",\n    "/opt/tomcat/latest/lib/servlet-api.jar"\n  ],\n  "java.project.outputPath": "WEB-INF/classes"\n}\n' > /var/www/jsp.servlet.localhost/.vscode/settings.json
-    ```
+    1. .vscode 설정 폴더 생성
+        ```bash
+        mkdir -p /var/www/<subdomain>.localhost/.vscode
+        ```
+
+    2. .vscode 설정 파일 생성
+        ```bash
+        touch /var/www/<subdomain>.localhost/.vscode/settings.json
+        ```
+
+    3. `settings.json` 내용 입력
+
+        ```json
+        {
+        "java.project.sourcePaths": [
+            "WEB-INF/src"
+        ],
+        "java.project.referencedLibraries": [
+            "WEB-INF/lib/*.jar",
+            "/usr/share/tomcat10/lib/servlet-api.jar"
+        ],
+        "java.project.outputPath": "WEB-INF/classes"
+        }
+        ```
 
 - 완성된 전체 구조 
 
     ```
-    /var/www/jsp.servlet.localhost
+    /var/www/<subdomain>.localhost
     ├── index.html
     └── WEB-INF/
         ├── web.xml                # Web Application 설정 파일
@@ -245,12 +243,7 @@
 >Tomcat에서 가상호스트(Virtual Host) 구조로 웹 애플리케이션을 운영할 때, `<Host>`
 `appBase`, `<Context path=""/>`에 따른 `docBase` 의 역할과 관리 방법을 정확히 이해하면 훨씬 안정적이고 체계적으로 운영할 수 있습니다.
 
-
-
-
-
-
--  `server.xml`에서 Host 추가 ( 예: `jsp.servlet.localhost` 도메인 )
+-  `server.xml`에서 Host 추가 ( 예: `<subdomain>.localhost` 도메인 )
     > `*.localhost` 도메인은 OS(운영체제)와 브라우저가 전부 자동으로 `127.0.0.1`로 처리되고 "내 컴퓨터 자신"을 가리키는 네트워크 주소입니다.
 
 - VScode 로 `server.xml` 파일 열기:
@@ -262,20 +255,21 @@
 - 아래 내용을 `<Engine>...</Engine>` 안에 추가
 
     ```xml
-    <Host name="jsp.servlet.localhost" appBase="webapps/jsp.servlet.localhost">
-        <Context docBase="/var/www/jsp.servlet.localhost" />
+    <Host name="<subdomain>.localhost" appBase="webapps/<subdomain>.localhost">        
+        <Context path="" docBase="/var/www/<subdomain>.localhost" />
     </Host>
     ```
 
     | 항목                | 의미 | 사용 목적     |
     | ----------------- | ------------------ | --- |
-    | `<Host` **name**   | 가상호스트 이름    |  HTTP 요청의 Host 헤더값을 기준으로 어떤 가상호스트로 연결할지 결정한다 |
+    | `<Host` **name**   | 가상호스트 이름    |  HTTP 요청의 Host 헤더값이 이 이름일 때만 이 Host가 사용됨 |
     | `<Host` **appBase**   | 기본 디렉터리 |  Tomcat 이 자동으로 감시·배포하는 내부 관리용 디렉터리. |
+    | `<Context` **path**       | URL이 / 경로로 접근했을때. <br>`path=""` 만이 정식 루트 컨텍스트로 인식 | 한 서버에 여러 개의 웹앱이 있을 때, 각각을 다른 URL 경로로 접근할 수 있게 해줌. <br>예) http://localhost:8080/shop - 쇼핑몰 서비스 <br> 예) http://localhost:8080/admin - 관리자 페이지 |
     | `<Context` **docBase**       | 실제 파일이 있는 위치 | 작업폴더를 외부 경로나 특정 위치에 둘 때 직접 지정 |
 
-- `appBase` 폴더 `webapps/jsp.servlet.localhost` 생성
+- `appBase` 폴더 `webapps/<subdomain>.localhost` 생성
     ```bash
-    mkdir -p /opt/tomcat/latest/webapps/jsp.servlet.localhost
+    mkdir -p /var/lib/tomcat10/webapps/<subdomain>.localhost
     ```
 
 - Tomcat 서버 재시작:
@@ -283,24 +277,19 @@
     sudo systemctl restart tomcat
     ```
 
-- 브라우저에서 http://jsp.servlet.localhost:8080/ 열기
+- 브라우저에서 http://<subdomain>.localhost:8080/ 열기
     - 흰색 빈 페이지가 뜨면 정상. 404 에러 페이지가 뜬다면 문제 있음.
 
-- 브라우저에서 http://jsp.servlet.localhost:8080/test/ 열기    
+- 브라우저에서 http://<subdomain>.localhost:8080/test/ 열기    
 
     ![jsp/sevlet 예제 페이지](https://lh3.googleusercontent.com/d/1OP6O2fWPF2kV7NzHTfAMEYs_EdtE-cmk?)
 
 
     
 
-- `http://jsp.servlet.localhost:8080/index.html` 페이지 작성 
+- `http://<subdomain>.localhost:8080/index.html` 페이지 작성 
 
-    - `VSCode`로 프로젝트 디렉터리 열기 
-        ```bash
-        code /var/www/jsp.servlet.localhost/
-        ```
-
-    - `jsp.servlet.localhost/index.html` 내용 편집
+    - `index.html` 내용 편집
 
         ```html
         <!DOCTYPE html> <!-- 브라우저가 최신 웹 표준에 맞춰 작동하도록 사용함 -->
@@ -318,7 +307,7 @@
         </head>
         <body>
             <h1>Hello, Tomcat!</h1>
-            <p>이 페이지는 Tomcat에서 /var/www/jsp.servlet.localhost/index.html 파일을 불러오고 있습니다.</p>
+            <p>이 페이지는 Tomcat에서 /var/www/<subdomain>/index.html 파일을 불러오고 있습니다.</p>
             <p>현재시간 : <span id="date_text"></span><button id="myButton">클릭</button></p>
             
             
@@ -334,7 +323,7 @@
         </html>
         ```
 
-    4. 브라우저에서 http://jsp.servlet.localhost:8080 열기
+    4. 브라우저에서 http://<subdomain>.localhost:8080 열기
 
 ## 7. Nginx 를 리버스 프록시 서버로 사용하기
 > 클라이언트(브라우저)의 요청을 직접 웹 애플리케이션 서버(Spring, Node, Tomcat 등)에 보내는 대신, Nginx가 요청을 먼저 받고 대신 전달해주는 방식입니다.
@@ -348,7 +337,7 @@
       
 
     ```bash
-    sudo touch /etc/nginx/sites-available/jsp.servlet.localhost && sudo chown ubuntu:ubuntu /etc/nginx/sites-available/jsp.servlet.localhost
+    sudo touch /etc/nginx/sites-available/<subdomain>.localhost && sudo chown ubuntu:ubuntu /etc/nginx/sites-available/<subdomain>.localhost
     ```
 
     > `localhost` 도메인은 OS(운영체제)와 브라우저가 전부 자동으로 `127.0.0.1`로 처리되고 "내 컴퓨터 자신"을 가리키는 네트워크 주소입니다.  
@@ -359,13 +348,13 @@
     code /etc/nginx/
     ```
 
-- `/sites-available/jsp.servlet.localhost` 파일에 아래 내용을 입력:
+- `/sites-available/<subdomain>.localhost` 파일에 아래 내용을 입력:
     ```nginx
     server {
         listen 80; # IPv4에서 포트 80으로 요청을 수신
         listen [::]:80; # IPv6에서 포트 80으로 요청을 수신
 
-        server_name jsp.servlet.localhost; # 도메인을 jsp.servlet.localhost 로 지정
+        server_name <subdomain>.localhost; # 도메인을 <subdomain>.localhost 로 지정
 
         charset utf-8; # 클라이언트에 전달되는 콘텐츠의 기본 문자 인코딩을 UTF-8로 설정
 
@@ -380,7 +369,7 @@
     ``` 
 - 실제로 nginx 에서 참조하는 설정파일 경로는 `/etc/nginx/sites-enabled/` 이므로 링크 파일 생성      
     ```bash
-    sudo ln -s /etc/nginx/sites-available/jsp.servlet.localhost /etc/nginx/sites-enabled/
+    sudo ln -s /etc/nginx/sites-available/<subdomain>.localhost /etc/nginx/sites-enabled/
     ```
     > /etc/nginx/sites-available와 /etc/nginx/sites-enabled 구조를 사용하는 이유는 여러 도메인/사이트를 운영할 때 유지보수에 용이하기 때문에 Debian 계열 Nginx 배포판의 특징입니다.
 
@@ -390,11 +379,11 @@
     ```
     > `systemctl` 는 `systemd` 로 서비스(Tomcat, Nginx 등)를 제어하기 위한 명령어 도구 입니다.
 
-- http://jsp.servlet.localhost 페이지 확인
+- http://<subdomain>.localhost 페이지 확인
 
 
 ## 💡 **요약정리**  
 > Tomcat 은 Java 기반 웹 애플리케이션을 실행하는 WAS(Web Application Server) 입니다.
 
 ## 🧩 실습 / 과제
-- http://java.localhost 접속시 http://jsp.servlet.localhost:8080 주소로 요청 되도록 nginx 설정하기
+- http://java.localhost 접속시 http://<subdomain>.localhost:8080 주소로 요청 되도록 nginx 설정하기
