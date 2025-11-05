@@ -4,11 +4,10 @@
 ## 📘 학습 개요
 Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서버 개발환경 구성하기
 
-- 아래 단계를 진행하기 전 `VSCode`가 없다면,
-   - [VSCode 다운로드](https://code.visualstudio.com/) 에서 설치
-   - 확장 프로그램 설치
-      - [VSCode WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl)
-      - [VSCode Extension Pack for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack)
+- 아래 단계를 진행하기 전,
+   - [VSCode 다운로드](https://code.visualstudio.com/) 
+   - [VSCode WSL ( Extension )](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) 
+   - [VSCode Extension Pack for Java ( Extension )](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack)
 
 ## 💡 주요 내용
 - WSL( Windows Subsystem Linux ) 소개 및 설치과정
@@ -43,7 +42,7 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
 
    - 설치가 완료되면 사용자 이름과 비밀번호를 설정해야 합니다. 
 
-      실습시 용이하게 아래와 같이 ubuntu / ubuntu 로 아이디 패스워드를 설정합니다.
+      <아이디> 입력 후, <패스워드> 두번 입력합니다.
 
       ![아이디패스워드입력](https://lh3.googleusercontent.com/d/1n87lsF_ChuQIRtmV36s4EsSsELtsrd3D)
 
@@ -77,7 +76,7 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
 
 - Ubuntu 서버 설정:
 
-   - `Powershell`에서 Ubuntu 서버 접속:
+   - `Powershell`에서 WSL Ubuntu 서버 접속:
       ```Powershell
       > wsl
       ```
@@ -85,7 +84,59 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
       ```bash
       echo 'cd ~' >> ~/.bashrc
       ```
-   - hostname을 바꾸기 위해 `/etc/wsl.conf` 설정파일 수정:
+      - `echo 'cd ~'` : 문자열 "cd ~" 를 출력한다
+
+      - `>> ~/.bashrc` : 출력된 결과를 `~/.bashrc` 파일 맨 아래에 추가한다.
+
+   - 새로운 hostname 으로 변경
+
+      - hostname 확인
+         > 현재 hostname 확인 명령어 ( 윈도우로 치면 컴퓨터 이름 )
+         ```bash
+         hostname
+         ```
+
+      - hostname이 어느 IP로 해석되는지 확인
+         > getent hosts 는 IP 주소 매핑 정보를 시스템이 실제로 어떻게 해석하는지를 보여주는 명령어입니다.
+         ```bash
+         getent hosts <hostname>
+         ```
+         출력결과가 `127.0.0.1  <hostname` 면 정상임.
+
+      - /etc/hosts 파일에 hostname 추가 ( `<hostname>`은 본인이 직접 수정 )
+         ```bash
+         echo "127.0.0.1 <hostname>" | sudo tee -a /etc/hosts
+         ```
+         - `echo ""` : " " 안에 내용을 화면에 출력 -> "127.0.0.1 hostname"
+         - `|` : 앞 명령어의 출력을 뒤 명령어의 입력으로 전달하라는 뜻입니다.
+         - `tee -a` : 리눅스/유닉스에서 표준 입력을 받아서 파일 마지막 줄에 추가함.
+
+      - /etc/hosts 파일 내용
+         ```bash
+         cat /etc/hosts
+         ```
+         - cat <파일이름> : 가장 많이 쓰이는 명령어 중 하나이며 파일 내용을 화면에 출력해줍니다.
+
+      - /etc/hosts 파일 수정 후 적용
+         ```bash
+         sudo resolvectl flush-caches
+         ```
+         - resolvectl flush-caches : DNS 캐시 제거 명령어
+
+      - hostname 변경 ( `<hostname>`은 본인이 직접 작성 )
+         ```bash
+         sudo hostnamectl set-hostname <hostname>
+         ```
+   
+      - 적용 확인
+         ```bash
+         hostname          # 현재 hostname 확인
+         getent hosts <hostname> # hosts 파일이 정상적으로 적용되면 IP가 나옴
+         ping <hostname>         # 127.0.x.x로 ping되면 정상
+         ```      
+   
+
+   - WSL Ubuntu hostname을 바꾸기 위해 `/etc/wsl.conf` 설정파일 수정: ( WSl Ubuntu 일때 )
       ```bash
       sudo sh -c 'cat > /etc/wsl.conf << "EOF"
       [boot]
@@ -103,25 +154,26 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
       ```bash
       cat /etc/wsl.conf
       ```
-      ```{content: }
-      [boot]
-      systemd=true
+      - cat <파일이름> : 가장 많이 쓰이는 명령어 중 하나이며 파일 내용을 화면에 출력해줍니다.
+         ```
+         [boot]
+         systemd=true
 
-      [user]
-      default=ubuntu
+         [user]
+         default=ubuntu
 
-      [network]
-      hostname=ubuntu-webserver
-      generateHosts=false
-      ```
+         [network]
+         generateHosts=false
+         hostname=ubuntu-webserver         
+         ```
          
-      - `systemd=true` : ubuntu 부팅시 자동으로 `systemd`에 등록된 서비스(웹서버,디비서버 등) 시작하려면 `true` 아니면 `false`
+         - `systemd=true` : ubuntu 부팅시 자동으로 `systemd`에 등록된 서비스(웹서버,디비서버 등) 시작하려면 `true` 아니면 `false`
 
-      - `default=ubuntu` : Ubuntu Shell 접속시 자동으로 로그인 할 사용자 이름입니다.
+         - `default=ubuntu` : Ubuntu Shell 접속시 자동으로 로그인 할 사용자 이름입니다.
 
-      - `hostname=ubuntu-webserver` : WSL 환경에서 Ubuntu를 실행할 때, 시스템이 부팅 과정에서 `/etc/hostname` 파일을 자동으로 다시 생성합니다. 이 때문에 고정된 호스트 이름을 사용하려면 `/etc/wsl.conf` 파일에서 호스트 이름을 지정해야 합니다.
+         - `hostname=ubuntu-webserver` : WSL 환경에서 Ubuntu를 실행할 때, 시스템이 부팅 과정에서 `/etc/hostname` 파일을 자동으로 다시 생성합니다. 이 때문에 고정된 호스트 이름을 사용하려면 `/etc/wsl.conf` 파일에서 호스트 이름을 지정해야 합니다.
 
-      - `generateHosts=false` : WSL 환경에서 Ubuntu를 실행할 때, `/etc/hosts` 파일을 자동으로 덮어쓰지 않기 위해 설정합니다.
+         - `generateHosts=false` : WSL 환경에서 Ubuntu를 실행할 때, `/etc/hosts` 파일을 자동으로 덮어쓰지 않기 위해 설정합니다.
 
    - hostname을 해석 할 수 있도록 `/etc/hosts` 파일에 ubuntu-web 내용 추가:
       ```bash
@@ -247,7 +299,7 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
    ```
 
 - WSL 사용자 비밀번호 재설정
-   ```powershell
+   ```Powershell
    > wsl -u root
    ```
    ```bash
@@ -255,8 +307,13 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
    ```
 
 - WSL2를 기본 버전으로 설정:
-   ```powershell
+   ```Powershell
    > wsl --set-default-version 2
+   ```
+
+- WSL 포트포워딩 확인:
+   ```powershell
+   > netsh interface portproxy show v4tov4
    ```
 
 - ubuntu 사용자 추가

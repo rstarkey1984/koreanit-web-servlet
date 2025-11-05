@@ -13,8 +13,9 @@
 
 ### 2️⃣ WSL을 이용해 Ubuntu 서버 개발환경 구축 
 1. [WSL로 리눅스 서버 개발환경 구축 ( WSL + Ubuntu + JDK ) ](20-ubuntu-web-server/01-wsl-setup.md)
-2. [웹 서버 구성하기 ( Nginx )](20-ubuntu-web-server/02-nginx-setup.md)
-3. [웹 어플리케이션 서버 구성하기 ( Tomcat )](20-ubuntu-web-server/03-tomcat-setup.md)
+2. [WSL Ubuntu 를 실제 개발서버 접속과 동일하게 구성하기](20-ubuntu-web-server/02-wsl-setup.md)
+3. [웹 서버 구성하기 ( Nginx )](20-ubuntu-web-server/03-nginx-setup.md)
+4. [웹 어플리케이션 서버 구성하기 ( Tomcat )](20-ubuntu-web-server/04-tomcat-setup.md)
 
 ### 3️⃣ Java Servlet/JSP
 1. [Java Servlet / JSP 소개](30-java-examples/01-servlet-jsp-intro.md)

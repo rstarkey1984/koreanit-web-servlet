@@ -38,7 +38,7 @@
 | 2| SYN-ACK | 서버 → 클라이언트 : “좋아요, 준비됐어요” |    
 | 3 | ACK  | 클라이언트 → 서버 : “확인했습니다”     |    
 
-이 과정을 **3-way handshake** 라고 하며 이 과정이 끝이 나면 TCP 레벨에서 양방향 통신 가능한 파이프라인(소켓)이 생성
+이 과정을 **3-way handshake** 라고 하며 이 과정이 끝이 나면 TCP 레벨에서 양방향 통신 가능한 파이프라인이 생성
 
 - SYN = Synchronize : “연결을 시작하자” — TCP 시퀀스 번호 초기화용
 - ACK = Acknowledge : “잘 받았어” — 상대의 요청이나 데이터 수신 확인
@@ -62,67 +62,52 @@
 
 클라이언트가 서버에 보내는 메시지는 아래와 같이 구성됩니다.
 ```
-Request Line → 요청 라인 (또는 상태 라인)
-Headers → 여러 개의 헤더들
----빈 줄 하나---
-Body → 실제 데이터 (POST나 PUT일 때만 존재)
+<① Request Line>
+<② Header Fields>
+<빈 줄 (\r\n)>
+<③ Body (필요할 때만)>
 ```
 
 클라이언트 요청( GET ) 예시:
 ```
-<!-- Request Line -->
-GET / HTTP/1.1
-<!-- Headers 시작 -->
-Host: www.google.com
-Connection: keep-alive
+GET / HTTP/1.1  ✅ <① Request Line>
+Host: www.google.com ✅ <② Header Fields>
 User-Agent: Chrome/129.0 - 
-Accept: text/html,application/xhtml+xml
-Accept-Language: ko-KR
 Cookie: sessionid=abcd1234
-Authorization: Bearer eyJhbGciOiJI...
-<!-- Headers 끝 -->
-
-<!-- Body 시작 --> (POST나 PUT일 때만 존재)
-username=student01&password=1234
-<!-- Body 끝 -->
+<빈 줄 (\r\n)> ✅ GET 방식은 여기서 끝남
+username=student01&password=1234 ✅ <③ Body (필요할 때만)>
 ```
 
-- Request Line ( 요청 라인 ) : 요청의 첫 줄로, 어떤 행동을 할지와 대상 주소를 알려줍니다.
-    |항목|의미|
-    |------|---|
-    |GET|요청 메서드(행동)|
-    |/|요청할 리소스(경로)|
-    |HTTP/1.1|프로토콜 버전|
+- 요청 라인 ( Request Line ) : 요청의 첫 줄로, 어떤 행동을 할지와 대상 주소를 알려줍니다.
+    |항목|의미|예시|
+    |------|---|---|
+    |GET|요청 메서드(행동)|GET,POST,PUT|
+    |/|요청할 리소스(경로)|/test.html?param1=1&param2=2
+    |HTTP/1.1|프로토콜 버전||
 
-- Headers : 클라이언트(브라우저나 앱)가 자신의 환경, 요청 세부 정보, 인증 정보 등을 보냅니다. 서버는 이걸 보고 “누가, 어떻게 요청했는지” 판단합니다.
+- 헤더 ( Header Fields ) : 클라이언트(브라우저나 앱)가 자신의 환경, 요청 세부 정보, 인증 정보 등을 보냅니다. 서버는 이걸 보고 “누가, 어떻게 요청했는지” 판단합니다.
 
     |헤더|설명|
     |------|---|
     |Host|	요청 대상 도메인 이름 (www.google.com)|
-    |Connection| keep-alive 면 TCP 연결을 한 번 맺은 후, 여러 HTTP 요청을 같은 연결로 재사용하겠다는 뜻|
     |User-Agent	|클라이언트 종류 (브라우저, OS 정보 등)|
-    |Accept	|클라이언트가 받을 수 있는 콘텐츠 형식|
-    |Accept-Language|	선호하는 언어|
-    |Referer	|이전 페이지 URL (어디서 왔는지)|
     |Cookie|세션이나 로그인 정보|
-    |Authorization|	인증 토큰 또는 자격 증명|
-    |Content-Type|(POST 요청 시) 보낸 데이터 형식 (예: application/json)|
+    |Content-Type|(POST 요청 시) 보낸 데이터 형식 <br> (예: application/x-www-form-urlencoded, application/json, multipart/form-data) |
 
+- 빈줄 : 단순한 줄바꿈이 아니라, "헤더와 바디(Body) 사이를 구분하는 명확한 경계" 로 사용됩니다.
 
-- Body( 본문 ) : 
+- 본문 ( Body ) : 
     |메서드|설명|
     |------|---|
     |GET | 보통 없음. |
-    |POST / PUT / PATCH | 데이터가 본문에 담겨서 전송 (예: username=student01&password=1234 )|
+    |POST / PUT | 데이터가 본문에 담겨서 전송 (예: username=student01&password=1234 )|
 
 ### 6️⃣ 서버의 응답 ( HTTP Response )
-
-서버의 HTTP 응답 메시지는 이렇게 구성됩니다.
 ```
-Response Line → 응답 라인 (또는 상태 라인)
-Headers → 여러 개의 헤더들
----빈 줄 하나---
-Body → 실제 데이터
+<① Response Line>
+<② Header Fields>
+<빈 줄 (\r\n)>
+<③ Body (실제 데이터)>
 ```
 
 서버 응답 예시:
@@ -132,8 +117,6 @@ HTTP/1.1 200 OK
 <!-- Headers 시작 -->
 Content-Type: text/html
 Content-Length: 1234
-Connection: keep-alive
-Keep-Alive: timeout=5, max=100
 <!-- Headers 끝 -->
 
 <!-- Body 시작 -->
@@ -157,12 +140,10 @@ Keep-Alive: timeout=5, max=100
     |---|---|
     |Content-Type|Body 데이터 형식|
     |Content-Length|Body 데이터 길이|
-    |Connection| keep-alive	라면 연결을 유지하겠다는 뜻 (서버도 동의)|
-    |Keep-Alive| timeout=5, max=100	옵션 헤더 — 얼마나 유지할지 조건 지정|
-    |timeout|	연결을 몇 초 동안 유지할지 (예: 5초 동안 다음 요청 기다림)|
-    |max|	한 연결에서 몇 개의 요청까지 처리할지 제한|
 
-- Body( 본문 ) : 본문에는 **HTML 코드**가 담겨 있습니다. 
+- 빈줄 : 단순한 줄바꿈이 아니라, "헤더와 바디(Body) 사이를 구분하는 명확한 경계" 로 사용됩니다.
+
+- Body( 본문 ) : 본문에는 Content-Type 에 따라 내용이 들어있습니다. ( text/html, application/json 등 )
 
 
 ### 7️⃣ 렌더링(Rendering)

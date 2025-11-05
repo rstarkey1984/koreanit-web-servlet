@@ -316,7 +316,7 @@ Java Servlet 작동 방식을 알아보자.
 
 4. servlet build & restart 선택
 
-    ![servlet-build-restart](https://lh3.googleusercontent.com/d/1Gd7LT6216PYWctP5vOqa-QWTuVuUeFCa)
+    ![servlet-build-restart](https://lh3.googleusercontent.com/d/1Gd7LT6216PYWctP5vOqa-QWTuVuUeFCa?)
 
 5. `Ctrl` + `Shift` + `B` 를 누르면 빌드가 되고, VSCode 아래쪽 패널 터미널 탭에서 `tasks.json` 파일에서 작성한 스크립트가 실행이 됩니다.
 
@@ -424,7 +424,5 @@ public class HelloServlet extends HttpServlet {
      > doGet()이 끝나는 순간 `HttpServletResponse response`에 기록된 내용을 Tomcat이 브라우저에 전송
 
 
-
-
-
 ## 🧩 실습 / 과제
+1. http://jsp.servlet.localhost/hello_03 서블릿 페이지 만들기
