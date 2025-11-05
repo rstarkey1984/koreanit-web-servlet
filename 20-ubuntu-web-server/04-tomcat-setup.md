@@ -243,14 +243,8 @@
 >Tomcat에서 가상호스트(Virtual Host) 구조로 웹 애플리케이션을 운영할 때, `<Host>`
 `appBase`, `<Context path=""/>`에 따른 `docBase` 의 역할과 관리 방법을 정확히 이해하면 훨씬 안정적이고 체계적으로 운영할 수 있습니다.
 
--  `server.xml`에서 Host 추가 ( 예: `<subdomain>.localhost` 도메인 )
+-  `/etc/tomcat10/server.xml`에서 Host 추가 ( 예: `<subdomain>.localhost` 도메인 )
     > `*.localhost` 도메인은 OS(운영체제)와 브라우저가 전부 자동으로 `127.0.0.1`로 처리되고 "내 컴퓨터 자신"을 가리키는 네트워크 주소입니다.
-
-- VScode 로 `server.xml` 파일 열기:
-
-    ```bash
-    code /opt/tomcat/latest/conf/server.xml
-    ```
 
 - 아래 내용을 `<Engine>...</Engine>` 안에 추가
 
@@ -264,7 +258,7 @@
     | ----------------- | ------------------ | --- |
     | `<Host` **name**   | 가상호스트 이름    |  HTTP 요청의 Host 헤더값이 이 이름일 때만 이 Host가 사용됨 |
     | `<Host` **appBase**   | 기본 디렉터리 |  Tomcat 이 자동으로 감시·배포하는 내부 관리용 디렉터리. |
-    | `<Context` **path**       | URL이 / 경로로 접근했을때. <br>`path=""` 만이 정식 루트 컨텍스트로 인식 | 한 서버에 여러 개의 웹앱이 있을 때, 각각을 다른 URL 경로로 접근할 수 있게 해줌. <br>예) http://localhost:8080/shop - 쇼핑몰 서비스 <br> 예) http://localhost:8080/admin - 관리자 페이지 |
+    | `<Context` **path**       | `path=""` 만이 정식 루트 컨텍스트로 인식<br>예) path=""<br>예) path="shop"<br>예) path="admin" | 한 서버에 여러 개의 웹앱이 있을 때, 각각을 다른 URL 경로로 접근할 수 있게 해줌.<br>예) http://localhost:8080/ <br>예) http://localhost:8080/shop - 쇼핑몰 서비스 <br> 예) http://localhost:8080/admin - 관리자 페이지 |
     | `<Context` **docBase**       | 실제 파일이 있는 위치 | 작업폴더를 외부 경로나 특정 위치에 둘 때 직접 지정 |
 
 - `appBase` 폴더 `webapps/<subdomain>.localhost` 생성
