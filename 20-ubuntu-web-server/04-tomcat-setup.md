@@ -261,24 +261,13 @@
     | `<Context` **path**       | `path=""` 만이 정식 루트 컨텍스트로 인식<br>예) path=""<br>예) path="shop"<br>예) path="admin" | 한 서버에 여러 개의 웹앱이 있을 때, 각각을 다른 URL 경로로 접근할 수 있게 해줌.<br>예) http://localhost:8080/ <br>예) http://localhost:8080/shop - 쇼핑몰 서비스 <br> 예) http://localhost:8080/admin - 관리자 페이지 |
     | `<Context` **docBase**       | 실제 파일이 있는 위치 | 작업폴더를 외부 경로나 특정 위치에 둘 때 직접 지정 |
 
-- `appBase` 폴더 `webapps/<subdomain>.localhost` 생성
-    ```bash
-    mkdir -p /var/lib/tomcat10/webapps/<subdomain>.localhost
-    ```
-
 - Tomcat 서버 재시작:
     ```bash
     sudo systemctl restart tomcat
     ```
 
-- 브라우저에서 http://<subdomain>.localhost:8080/ 열기
+- 브라우저에서 http://`<subdomain>`.localhost:8080/ 열기
     - 흰색 빈 페이지가 뜨면 정상. 404 에러 페이지가 뜬다면 문제 있음.
-
-- 브라우저에서 http://<subdomain>.localhost:8080/test/ 열기    
-
-    ![jsp/sevlet 예제 페이지](https://lh3.googleusercontent.com/d/1OP6O2fWPF2kV7NzHTfAMEYs_EdtE-cmk?)
-
-
     
 
 - `http://<subdomain>.localhost:8080/index.html` 페이지 작성 
