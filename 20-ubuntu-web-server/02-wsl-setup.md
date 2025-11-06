@@ -34,6 +34,9 @@ WSL Ubuntu 를 실제 개발서버와 동일하게 설정하기 위해 윈도우
     [boot]
     systemd = true           # ssh 등 systemd 서비스 사용하려면 권장
 
+    [user]
+    default=<user>
+
     [automount]
     enabled = false          # /mnt/c 같은 자동 마운트 중지
     mountFsTab = true        # /etc/fstab 사용 시에만 마운트
