@@ -9,41 +9,42 @@ Java Servlet 작동 방식을 알아보자.
 
 ## 💡 주요 내용
 
-- Tomcat 에서 Java Servlet 요청 처리 흐름
+- Servet 동작 구조 (Request → Response 흐름)
 
 - 서블릿 매핑(Servlet URL Mapping)
 
-- Java Servlet 페이지 웹 어플리케이션에 배포
+- Servlet 웹 서버(Tomcat)에 반영
 
 --- 
 
+## 1. Servet 동작 구조 (Request → Response 흐름)
 
-## 1. Tomcat ( Servlet Container ) 에서 Java Servlet 요청 처리 흐름 
+```
+[브라우저] → HTTP 요청 → [Tomcat] → [Servlet 실행] → HTTP 응답 → [브라우저]
+```
+- `HttpServletRequest` → 요청 정보 (URL, 파라미터, 쿠키 등)
+- `HttpServletResponse` → 응답 정보 (HTML 출력, 상태코드 등)
 
-> Tomcat 에서 특히 docBase 기반의 Web Application 구조를 중심으로 정리하면 아래와 같습니다.
+- 실제 코드 예시)
 
-- `[tomcat]/conf/server.xml` 파일내용
+  ```java
+  // 클라이언트가 "/hello" 경로로 요청을 보내면 이 서블릿이 실행됨
+  @WebServlet("/hello")  
+  public class HelloServlet extends HttpServlet {
 
-  ```xml
-  <Connector port="8080" protocol="HTTP/1.1" ... />
-  ...
-  <Host name="<subdomain>.localhost">            
-      <Context path="/" docBase="/var/www/<subdomain>.localhost" />
-  </Host>
-  ...
+      // GET 방식 요청이 들어왔을 때 실행되는 메서드 (브라우저에서 URL 입력하면 기본적으로 GET 요청)
+      @Override
+      protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+              throws IOException {
+          
+          // 응답의 데이터 형식이 HTML이고, 인코딩은 UTF-8이라는 것을 브라우저에 알려줌
+          resp.setContentType("text/html; charset=UTF-8");
+
+          // 응답을 클라이언트(브라우저)에게 출력하는 출력 스트림을 가져와서, HTML 태그를 전송
+          resp.getWriter().println("<h1>Hello Servlet!</h1>");
+      }
+  }
   ```
-
-  | 단계                | 동작 내용                                                |
-  | ----------------- | ---------------------------------------------------- |
-  | 1️⃣ 클라이언트 요청      | 브라우저에서 `http://<subdomain>.localhost:8080/hello` 요청        |
-  | 2️⃣ Tomcat이 요청 수신 | `server.xml`의 `<Connector>`를 통해 8080 포트를 감시      |
-  | 3️⃣ Context 찾기    | URL의 `/` → `/var/www/<subdomain>.localhost` 프로젝트를 찾음
-  | 4️⃣ Servlet 매핑 확인 | `/hello` 요청이 `web.xml` 혹은 `@WebServlet("/hello")`과 연결됨 |
-  | 5️⃣ Servlet 실행    | - 최초 요청 시 `init()` 실행 후 메모리 로드                       |
-  |                   | - 이후 매 요청마다 `service()` → `doGet()` 또는 `doPost()` → `destroy()` 실행 |
-  | 6️⃣ 응답 반환         | HTML, JSON 등을 만들어 `HttpServletResponse`로 클라이언트에 보냄   |
-  | 7️⃣ 브라우저 출력       | 응답 데이터를 화면으로 렌더링             |
-  
 
 ## 2. 🧩 Servlet URL 매핑
 
@@ -68,13 +69,13 @@ Java Servlet 작동 방식을 알아보자.
       <!-- 클라이언트가 이 URL로 요청하면 해당 서블릿이 실행됨 -->
       <!-- 예: http://localhost:8080/프로젝트명/hello -->
       <!-- @Annotation 이랑 경로가 겹치면 Tomcat 서버 시작시 에러 -->
-      <url-pattern>/hello</url-pattern>
+      <url-pattern>/hello.do</url-pattern>
   </servlet-mapping>
   ```
 
 - @WebServlet 어노테이션(Annotation)을 이용한 간편 매핑 (Servlet 3.0 이상, `web.xml` 없이)
   ```java
-  @WebServlet("/hello")
+  @WebServlet("/hello.do")
   public class HelloServlet extends HttpServlet {
       ...
   }
@@ -153,7 +154,7 @@ Java Servlet 작동 방식을 알아보자.
         <!-- 클라이언트가 이 URL로 요청하면 해당 서블릿이 실행됨 -->
         <!-- 예: http://localhost:8080/프로젝트명/hello_01 -->
         <!-- @Annotation 이랑 경로가 겹치면 Tomcat 서버 시작시 에러 -->
-        <url-pattern>/hello_01</url-pattern>
+        <url-pattern>/hello.do</url-pattern>
     </servlet-mapping>
     ```
 
@@ -208,221 +209,162 @@ Java Servlet 작동 방식을 알아보자.
     }
     ```
 
-## 3. 수동 컴파일 + 웹 어플리케이션 폴더에 직접 배포하기
+## 3. Servlet 웹 서버(Tomcat)에 반영
+> Java 소스 파일(.java)을 클래스 파일(.class)로 컴파일하는 과정, 그리고 서블릿 실행을 위해 클래스 파일을 특정 위치(웹 애플리케이션 구조)에 배치하는 과정입니다.
 
-> Java 소스 파일(.java)을 클래스 파일(.class)로 컴파일하는 과정,
-그리고 서블릿 실행을 위해 클래스 파일을 특정 위치(웹 애플리케이션 구조)에 배치하는 과정입니다.
+1. VSCode Remote Explorer 에서 `/var/www/<톰캣작업폴더>` 접속.
 
-- Javac 명령어로 컴파일 해서 /WEB-INF/classes 폴더에 넣기
-  ``` bash
-  javac -cp /usr/share/tomcat10/lib/servlet-api.jar: -d /var/www/<subdomain>.localhost/WEB-INF/classes $(find /var/www/<subdomain>.localhost/WEB-INF/src/ -name "*.java")
-  ```
-  | 명령어/옵션                                   | 의미                                           |
-  | ---------------------------------------- | -------------------------------------------- |
-  | `javac`                                  | 자바 소스 파일(.java)을 컴파일하는 명령어                   |
-  | `-cp <경로>`                               | 클래스패스(Classpath). 외부 라이브러리 또는 필요한 클래스 위치를 설정 |
-  | `/usr/share/tomcat10/lib/servlet-api.jar` | Tomcat의 Servlet API 라이브러리 (서블릿 개발 시 필수)      |
-  | `-d <경로>`                                | 컴파일된 `.class` 파일을 저장할 디렉터리 지정                |
-  | `$(find <경로> -name "*.java")`            | 지정된 경로에서 모든 `.java` 파일을 찾아서 컴파일 대상으로 전달      |
+2. VSCode 에서 `WEB-INF` 폴더 우클릭 후 `Open in Intergrated Terminal` 클릭.
 
-- Tomcat 실시간 로그 보기 ( 디버깅할때 유용 )
-  ```bash
-  sudo tail -f /var/log/tomcat10/catalina.out
-  ```
+3. 배포 스크립트 파일 생성
+    ```
+    touch tomcat_deploy.sh
+    ```   
 
-- Tomcat 서버 재시작 ( .class 파일이 변경되면 필요 )
+4. 실행권한 주기
+    ```
+    chmod +x tomcat_deploy.sh
+    ```
 
-  ```bash
-  sudo systemd restart tomcat
-  ```
+5. 배포 스크립트 파일 작성
+    ```bash
+    #!/bin/bash
 
-- 배포가 완료됐으니 위에서 매핑한것들이 잘 동작하는지 확인
+    # Java 소스 파일을 컴파일하는 명령어
+    # -encoding UTF-8      : 소스 파일 인코딩을 UTF-8로 지정
+    # -cp                  : 클래스패스(classpath) 설정 (서블릿 API와 라이브러리, 클래스 위치)
+    # -d                   : 컴파일된 .class 파일이 저장될 출력 디렉터리 지정
+    # $(find ...)          : src 디렉터리에서 모든 .java 파일을 찾아 컴파일 대상으로 전달
+    javac -encoding UTF-8 \
+      -cp /usr/share/tomcat10/lib/servlet-api.jar:WEB-INF/classes:WEB-INF/lib/* \
+      -d /var/www/jsp.servlet.localhost/WEB-INF/classes \
+      $(find /var/www/jsp.servlet.localhost/WEB-INF/src/ -name "*.java")
 
-  - 브라우저에서 `web.xml` 매핑으로 작성된 페이지 호출하기 http://<subdomain>.localhost/hello_01
+    # Tomcat 서버 재시작
+    # 새로운 .class 파일을 반영하기 위해 Tomcat을 다시 시작
+    sudo systemctl restart tomcat10
+    ```
 
-  - 브라우저에서 `@Annotation` 작성된 페이지 호출하기 http://<subdomain>.localhost/hello_02
+6. 스크립트 실행
+    ```bash
+    tomcat_deplay
+    ```
 
-## 4. `VSCode` 에서 빌드 & Tomcat 재시작
+
+## 4. `VSCode` 에서 배포 스크립트 사용하기
 
 1. `VSCode` 전용 빌드/자동화 정의 파일 만들기
 
-    - .vscode 폴더 생성
+    - `.vscode` 로 이동
       ```bash
-      mkdir -p /var/www/<subdomain>.localhost/.vscode
+      cd .vscode
       ```
 
     - tasks.json 파일 생성
       ```
-      touch /var/www/<subdomain>.localhost/.vscode/tasks.json
+      touch tasks.json
       ```
 
     - `/var/www/<subdomain>.localhost/.vscode/tasks.json` 편집
       ```json
       {
+        // VS Code Task 설정 파일 버전 (2.0 이후부터는 이 형태 사용)
         "version": "2.0.0",
+
         "tasks": [
           {
-            "label": "clean & compile",
+            // VS Code에서 표시되는 작업 이름
+            "label": "Deploy to Tomcat",
+
+            // 어떤 방식으로 실행할지 (shell = 터미널에서 쉘 명령 실행)
             "type": "shell",
-            "command": "bash",
-            "args": [
-              "-lc",
-              "rm -rf /var/www/<subdomain>/WEB-INF/classes && mkdir -p /var/www/<subdomain>/WEB-INF/classes && javac -encoding UTF-8 -cp /usr/share/tomcat10/lib/servlet-api.jar:WEB-INF/classes:WEB-INF/lib/* -d /var/www/<subdomain>/WEB-INF/classes $(find /var/www/<subdomain>/WEB-INF/src/ -name \"*.java\")"
-            ],
-            "problemMatcher": {
-              "owner": "java",
-              "fileLocation": [
-                "absolute"
-              ],
-              "pattern": {
-                "regexp": "^(.*):(\\d+): (error|warning): (.*)$",
-                "file": 1,
-                "line": 2,
-                "severity": 3,
-                "message": 4
-              }
+
+            // 실행할 실제 명령어 (bash 스크립트 실행)
+            "command": "./tomcat_deploy.sh",
+
+            // 명령이 실행되는 작업 디렉터리 설정
+            // 즉, 이 경로에서 ./tomcat_deploy.sh가 실행됨
+            "options": {
+              "cwd": "${workspaceFolder}/WEB-INF/"
             },
-            "group": "build"
-          },
-          {
-            "label": "restart tomcat",
-            "type": "shell",
-            "command": "bash",
-            "args": [
-              "-lc",
-              "sudo systemctl restart tomcat10"
-            ]
-          },
-          {
-            "label": "servlet build & restart",
-            "dependsOn": [
-              "clean & compile",
-              "restart tomcat"
-            ],
-            "dependsOrder": "sequence",
+
+            // 이 작업을 빌드 그룹에 포함시키며, 기본 빌드 작업으로 설정
+            // → Ctrl + Shift + B 로 실행 가능
             "group": {
               "kind": "build",
               "isDefault": true
-            },
-            "problemMatcher": []
+            }
           }
         ]
       }
       ```
 
-2. `Ctrl` + `Shift` + `P` 를 눌러서 default build task 입력 후 선택
+2. `Ctrl` + `Shift` + `P` 를 눌러서 `default build task` 입력 후 선택
 
     ![default-build-task](https://lh3.googleusercontent.com/d/1-cQdx3eIBA6iYFcB04xpSbWU0vG15Dfs)
 
 3. servlet build & restart 선택
 
-    ![servlet-build-restart](https://lh3.googleusercontent.com/d/1Gd7LT6216PYWctP5vOqa-QWTuVuUeFCa?)
+    ![servlet-build-restart](https://lh3.googleusercontent.com/d/1Gd7LT6216PYWctP5vOqa-QWTuVuUeFCa)
 
-4. `Ctrl` + `Shift` + `B` 를 누르면 빌드가 되고, VSCode 아래쪽 패널 터미널 탭에서 `tasks.json` 파일에서 작성한 스크립트가 실행이 됩니다.
+4. `Ctrl` + `Shift` + `B` 를 누르면 빌드가 되고, `VSCode` 아래쪽 패널 터미널 탭에서 `tasks.json` 파일에서 작성한 스크립트가 실행이 됩니다.
 
-    ![servlet-build-restart](https://lh3.googleusercontent.com/d/1D13-HaqOrBDFz_RXGuqq4_8VslDoVXuT?)
+    ![servlet-build-restart](https://lh3.googleusercontent.com/d/1Ufm3dTPHp1n-ZomOAYgsNSTH-ZfnZRb8)
 
   - Tomcat 이 정상적으로 동작하지 않을때 서버 로그 확인
 
     ```bash
-    tail -n 30 -f /opt/tomcat/latest/logs/catalina.out
+    log-tomcat
     ```
 
+## 5. Tomcat 재시작 시 세션 초기화 문제 
+> Tomcat는 기본적으로 “메모리 세션” 이라서 프로세스를 재시작하면 세션이 사라집니다. 재시작 이후에도 유지하려면 세션을 파일에 저장하거나, 외부 저장소(예: Redis)로 세션을 빼야 합니다. 
 
-## 5. Servlet 생명주기(Life Cycle)
-> **Life Cycle(라이프 사이클)** 은 Servlet 객체가 생성되고, 실행되며, 마지막에 메모리에서 소멸될 때까지의 전체 과정
+1. 톰캣의 파일 기반 세션 저장 켜기 - `/etc/tomcat10/server.xml` 파일을 열어서 아래 내용 수정
 
-Servlet은 JVM에서 실행되지만, 일반 자바 프로그램처럼 `main()`으로 시작하지 않습니다.
-대신 `Tomcat` 같은 WAS 가 서블릿 컨테이너가 되어 실행 흐름 전체를 관리합니다.
+    - 기존 Context 태그
+      ```xml       
+      <Context path="" docBase="/var/www/<subdomain>.localhost" />
+      ```
 
-| 단계                        | 메서드                                   | 설명                                          |
-| ------------------------- | ------------------------------------- | ------------------------------------------- |
-| **1. 로드 & 인스턴스 생성**       | `new()`                               | 클라이언트 요청이 들어오면 서블릿 클래스를 메모리에 올리고 객체를 생성합니다. |
-| **2. 초기화( 딱 1번 실행 )**       | `init()`                              | 서블릿이 처음 동작할 때 한 번만 실행됩니다. (DB 연결 등 초기 설정)   |
-| **3. 요청 처리(매번 요청마다 실행)**  | `service()` → `doGet()` or `doPost()` | HTTP 요청이 들어올 때마다 실행됩니다. GET/POST에 따라 분기됩니다. |
-| **4. 종료( 딱 1번 실행 )** | `destroy()`                           | Tomcat 서버가 내려갈 때 호출되며 자원 정리(메모리/DB 연결 해제 등)        |
+    - 수정된 Context 태그
+      ```xml       
+      <Context path="" docBase="/var/www/<subdomain>.localhost">
+          <!--           
+          ▼ 세션 저장 설정 (StandardManager 기본값 사용)
+          - Tomcat이 종료될 때 현재 세션 정보를 파일로 저장하고,
+            다시 시작하면 SESSIONS.ser 파일에서 세션을 복원합니다.
+          - kill -9 등 강제 종료 시 저장되지 않음
+          -->
+          <Manager pathname="SESSIONS.ser" />
+      </Context>
+      ```
 
-```java
-import ...
+    - `<Manager>` 기본 동작
+      ```xml
+      <!--
+        StandardManager 기본 설정 설명:
+        - pathname            : 기본값은 null → 파일 저장 안 함 (값을 주면 SESSIONS.ser로 저장/복원)
+        - className           : 기본값 org.apache.catalina.session.StandardManager 
+        - maxActiveSessions   : 기본값 -1 → 세션 개수 제한 없음
+        - processExpiresFrequency : 기본값 6 → 만료된 세션 정리 작업을 요청 6번마다 수행
+        - sessionIdLength     : 기본값 16 → 세션 ID 길이 (byte 단위 → 보통 32자리 문자열)
+      -->
+      <Manager
+          className="org.apache.catalina.session.StandardManager"
+          maxActiveSessions="-1"
+          processExpiresFrequency="6"
+          sessionIdLength="16"
+      />
+      ```
 
-public class HelloServlet extends HttpServlet {
-
-    // 서블릿이 처음 메모리에 로딩될 때 단 한 번 실행됩니다.
-    @Override
-    public void init() throws ServletException { 
-      ...
-    }
-
-    // 클라이언트가 HTTP GET 요청(GET 방식, URL 직접 접근 등)을 보낼 때마다 실행됩니다.
-    @Override 
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-      ...
-    }
-
-    // 클라이언트가 HTTP POST 요청(폼 제출, AJAX 등)을 보낼 때마다 실행됩니다.
-    @Override 
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-      ...
-    }
-
-    // Tomcat이 종료되거나 해당 서블릿이 메모리에서 내려갈 때 호출됩니다.
-    // 주로 DB 연결 해제, 자원 정리 용도로 사용됩니다.
-    @Override
-    public void destroy() {
-      ...
-    }
-}
-```
-
- - Servlet 과 Java 의 실행 과정 차이점
-
-    | 항목           | Servlet `doGet()` / `doPost()`    |Java `main()`                | 
-    | ------------ | ---------------------------- | --------------------------------------------- |
-    | **시작 위치**    | 사용자가 웹 요청(GET/POST)을 보낼 때 자동으로 실행             |프로그램 실행 시 가장 먼저 실행되는 메서드     | 
-    | **호출 방식**    | Tomcat 같은 **웹서버(Tomcat 컨테이너)** 가 호출           |JVM이 실행 (명령형 프로그램)           | 
-    | **실행 시점**    | 클라이언트가 **URL 요청 시 자동 실행**                     |개발자가 직접 실행 (ex: `java Main`) | 
-    | **반복 실행 여부** | **요청마다 반복 실행** (Servlet 객체는 1개, 메서드만 여러 번 호출) |실행하면 끝                       | 
-    | **입력 방식**    | HTTP 요청(HttpServletRequest)                   |콘솔/파일/Scanner 등              | 
-    | **출력 방식**    | HTTP 응답(HttpServletResponse) → 웹 브라우저 출력      |System.out.println 등 콘솔 출력   | 
-    > main()은 “프로그램을 직접 실행할 때 시작점”. doGet(), doPost()는 “웹 요청이 들어올 때 Tomcat이 대신 실행해주는 메서드”.
-
-## 6. Servlet 핵심 객체: HttpServletRequest & HttpServletResponse
-
--  `HttpServletRequest` (요청 정보)
-
-    | 설명                          | 예시                                                                                                        |
-    | --------------------------- | --------------------------------------------------------------------------------------------------------- |
-    | **클라이언트가 보낸 모든 HTTP 정보 저장** | URL 주소, 파라미터, 헤더, 쿠키, 요청 방식(GET/POST)                                                                     |
-    | **사용 목적**                   | 폼 입력값 가져오기, 로그인 데이터 읽기 등                                                                                  |
-    | **주요 메서드**                  | `getParameter("name")` → 사용자 입력 값 읽기<br>`getMethod()` → 요청 방식(GET/POST)<br>`getRequestURI()` → 요청한 URL 주소 |
-
-    예시:
-    ```java
-    String name = request.getParameter("name");  // URL?name=Tom
-    String method = request.getMethod();         // GET or POST
-    ```
-
-- `HttpServletResponse` (응답 생성)
-
-  | 설명                      | 예시                                                                                      |
-  | ----------------------- | --------------------------------------------------------------------------------------- |
-  | **서버가 클라이언트로 보낼 내용 설정** | HTML, JSON, 파일, 상태코드 등                                                                  |
-  | **사용 목적**               | 웹 브라우저에 출력 결과 전달                                                                        |
-  | **주요 메서드**              | `setContentType("text/html; charset=UTF-8")`<br>`getWriter().println("<h1>Hello</h1>")` |
-
-    예시: 
-    ```java
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-      response.setContentType("text/html; charset=UTF-8");
-      PrintWriter out = response.getWriter();
-      out.println("<h1>Hello Servlet!</h1>");
-      // doGet() 종료 → Tomcat이 자동으로 이 내용을 브라우저로 전송
-    }
-    ```
-     > doGet()이 끝나는 순간 `HttpServletResponse response`에 기록된 내용을 Tomcat이 브라우저에 전송
-
+  2. 적용하기 위해 재시작
+      ```
+      restart-tomcat
+      ```
+    
 
 ## 🧩 실습 / 과제
-1. http://`<subdomain>`/hello_03 서블릿 페이지 만들기
+1. `log-tomcat` 을 터미널에서 띄워서 로그 확인하기.
+
+2. 예제 폴더에 있는 LifeCycleServlet.java 를 http://java.localhost/ex/life 화면에 출력하고 코드 리뷰 같이 진행

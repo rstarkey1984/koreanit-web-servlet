@@ -50,10 +50,10 @@
 
 4. 파일 소유자 변경
     ```bash
-    sudo chown <user>:tomcat /etc/tomcat10/server.xml
+    sudo chown <user> /etc/tomcat10/server.xml
     ```
     ```bash
-    sudo chown <user>:tomcat /etc/tomcat10/tomcat-users.xml
+    sudo chown <user> /etc/tomcat10/tomcat-users.xml
     ```
 
 5. Tomcat10 기본 디렉터리 구조 (Ubuntu 24.04, apt 설치 기준)
@@ -290,7 +290,7 @@
         </head>
         <body>
             <h1>Hello, Tomcat!</h1>
-            <p>이 페이지는 Tomcat에서 /var/www/<subdomain>/index.html 파일을 불러오고 있습니다.</p>
+            <p>이 페이지는 Tomcat에서 /var/www/&lt;subdomain&gt;.localhost/index.html 파일을 불러오고 있습니다.</p>
             <p>현재시간 : <span id="date_text"></span><button id="myButton">클릭</button></p>
             
             
@@ -306,9 +306,10 @@
         </html>
         ```
 
-    4. 브라우저에서 http://<subdomain>.localhost:8080 열기
+    4. 브라우저에서 http://`<subdomain>`.localhost:8080 열기
 
-## 7. Nginx 를 리버스 프록시 서버로 사용하기
+
+## 8. Nginx 를 리버스 프록시 서버로 사용하기
 > 클라이언트(브라우저)의 요청을 직접 웹 애플리케이션 서버(Spring, Node, Tomcat 등)에 보내는 대신, Nginx가 요청을 먼저 받고 대신 전달해주는 방식입니다.
 
 - 리버스 프록시 서버 사용시 장점
@@ -316,45 +317,72 @@
     2. 부하 분산 (Load Balancing) - 즉 여러 개의 WAS 서버로 요청을 자동 분배할 수 있음.
     3. HTTPS(SSL) 처리 담당 - 관리하기가 편함.
 
-- Nginx 설정파일 생성 후 ubuntu 사용자에게 파일 수정 권한 변경:
-      
+- Nginx 설정파일 생성 및 권한 변경 후 링크 생성:      
 
-    ```bash
-    sudo touch /etc/nginx/sites-available/<subdomain>.localhost && sudo chown ubuntu:ubuntu /etc/nginx/sites-available/<subdomain>.localhost
-    ```
+    1. 파일 생성
+        ```bash
+        sudo touch /etc/nginx/sites-available/java.localhost
+        ```
+
+    2. 권한 변경
+        ```bash
+        sudo chown ubuntu /etc/nginx/sites-available/java.localhost
+        ```
+
+    3. 디렉터리 이동
+        ```bash
+        cd /etc/nginx/sites-enabled/
+        ```
+
+    4. 링크파일 상대경로로 생성
+        ```bash
+        sudo ln -s ../sites-available/java.localhost
+        ```
 
     > `localhost` 도메인은 OS(운영체제)와 브라우저가 전부 자동으로 `127.0.0.1`로 처리되고 "내 컴퓨터 자신"을 가리키는 네트워크 주소입니다.  
-
-- `VSCode` 로 `Nginx` 설정 디렉터리 열기:
     
-    ```bash
-    code /etc/nginx/
-    ```
-
-- `/sites-available/<subdomain>.localhost` 파일에 아래 내용을 입력:
+- `/sites-available/java.localhost` 파일에 아래 내용을 입력:
     ```nginx
     server {
-        listen 80; # IPv4에서 포트 80으로 요청을 수신
-        listen [::]:80; # IPv6에서 포트 80으로 요청을 수신
+        listen 80;              # IPv4 환경에서 모든 IP의 80 포트 요청을 수신
+        listen [::]:80;         # IPv6 환경에서 모든 IP의 80 포트 요청을 수신
 
-        server_name <subdomain>.localhost; # 도메인을 <subdomain>.localhost 로 지정
+        server_name java.localhost;
+        # 클라이언트 요청의 Host 헤더 값이 java.localhost 와 일치할 때만
+        # 이 server 블록이 처리함.
 
-        charset utf-8; # 클라이언트에 전달되는 콘텐츠의 기본 문자 인코딩을 UTF-8로 설정
+        charset utf-8;          # 응답하는 콘텐츠의 기본 인코딩을 UTF-8로 지정
 
         location / {
-            proxy_pass http://127.0.0.1:8080;   # Tomcat 서버
-            proxy_set_header Host $host;
+            proxy_pass http://127.0.0.1:8081;
+            # 들어온 모든 요청을 WSL 내부의 Tomcat 서버(127.0.0.1:8081)로 전달
+
+            proxy_set_header Host <톰캣가상호스트이름>;
+            # Tomcat에 전달되는 HTTP 요청의 Host 헤더 값을 강제로 변경
+            # (Tomcat이 가상 호스트나 Host 기반 설정을 사용하는 경우 필요할 수 있음)
+
             proxy_set_header X-Real-IP $remote_addr;
+            # 실제 클라이언트의 IP를 Tomcat에 전달
+            # (기본적으로 Tomcat은 프록시 서버의 IP만 보기 때문에 원래 IP 전달을 위해 사용)
+
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            # 프록시를 거친 클라이언트의 IP 주소 목록을 전달
+            # 예) 원래 클라이언트 IP, 중간 프록시 IP 등이 포함됨
+
             proxy_set_header X-Forwarded-Proto $scheme;
+            # 클라이언트가 요청에 사용한 프로토콜(HTTP/HTTPS)을 Tomcat에 전달
+
+            proxy_set_header User-Agent $http_user_agent;
+            # 원본 클라이언트의 브라우저 정보(User-Agent)를 그대로 Tomcat에 전달
         }
     }
     ``` 
-- 실제로 nginx 에서 참조하는 설정파일 경로는 `/etc/nginx/sites-enabled/` 이므로 링크 파일 생성      
+
+- `systemctl` 쓸때 앞으로 패스워드 묻지 않도록 설정
+
     ```bash
-    sudo ln -s /etc/nginx/sites-available/<subdomain>.localhost /etc/nginx/sites-enabled/
+    echo "<user> ALL=NOPASSWD: /usr/bin/systemctl" | sudo tee /etc/sudoers.d/systemctl-nopasswd > /dev/null
     ```
-    > /etc/nginx/sites-available와 /etc/nginx/sites-enabled 구조를 사용하는 이유는 여러 도메인/사이트를 운영할 때 유지보수에 용이하기 때문에 Debian 계열 Nginx 배포판의 특징입니다.
 
 - Nginx 재시작
     ```bash
@@ -362,11 +390,11 @@
     ```
     > `systemctl` 는 `systemd` 로 서비스(Tomcat, Nginx 등)를 제어하기 위한 명령어 도구 입니다.
 
-- http://<subdomain>.localhost 페이지 확인
+- http://java.localhost 페이지 확인
 
 
 ## 💡 **요약정리**  
 > Tomcat 은 Java 기반 웹 애플리케이션을 실행하는 WAS(Web Application Server) 입니다.
 
 ## 🧩 실습 / 과제
-- http://java.localhost 접속시 http://<subdomain>.localhost:8080 주소로 요청 되도록 nginx 설정하기
+- 실제로 존재하는 http://example.com 페이지 화면을 http://example.localhost 접속시 보이도록 해보자.

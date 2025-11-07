@@ -86,7 +86,7 @@
       - `<mysubdomain>` : 서브도메인. 예시) subdomain1.localhost, subdomain2.localhost
 
       ```bash
-      sudo chown <user>:<group> /etc/nginx/sites-available/<mysubdomain>.localhost
+      sudo chown <user> /etc/nginx/sites-available/<mysubdomain>.localhost
       ```
       - `chown <user>:<group> <파일이름>` : <파일이름> 을 소유자와 그룹 모두 변경
 
@@ -122,18 +122,17 @@
       sudo ln -s /etc/nginx/sites-available/<mysubdomain>.localhost /etc/nginx/sites-enabled/
       ```
       - `ln -s [원본 파일/디렉터리] [링크 이름]` : **심볼릭 링크(Symbolic Link, 또는 소프트 링크)** 생성할 때 사용하는 명령어입니다. 윈도우의 **바로가기(Shortcut)** 와 비슷한 개념이라고 보면 이해하기 쉽습니다.
-      
+
+   - ubuntu 사용자는 `systemctl` 쓸때 앞으로 패스워드 묻지 않도록 설정
+      ```bash
+      echo "ubuntu ALL=NOPASSWD: /usr/bin/systemctl" | sudo tee /etc/sudoers.d/systemctl-nopasswd > /dev/null
+      ```
 
    - Nginx 재시작
       ```bash
       sudo systemctl restart nginx
       ```
       > `systemctl` 는 `systemd` 로 서비스(Tomcat, Nginx 등)를 제어하기 위한 명령어 도구 입니다.
-
-   - ubuntu 사용자는 `systemctl` 쓸때 앞으로 패스워드 묻지 않도록 설정
-      ```bash
-      echo "ubuntu ALL=NOPASSWD: /usr/bin/systemctl" | sudo tee /etc/sudoers.d/systemctl-nopasswd > /dev/null
-      ```
 
 
    - 브라우저를 열어서 확인하기 http://nginx.localhost
@@ -233,15 +232,15 @@
 
    4. 관리자 권한으로 명령어 입력
    
-   - 방화벽 규칙 생성
-      ```Powershell
-      > netsh advfirewall firewall add rule name="Allow WSL 80" dir=in action=allow protocol=TCP localport=80
-      ```
-   
-   - 방화벽 규칙 삭제
-      ```Powershell
-      > netsh advfirewall firewall delete rule name="Allow WSL 80"
-      ```
+      - 방화벽 규칙 생성
+         ```Powershell
+         > netsh advfirewall firewall add rule name="Allow WSL 80" dir=in action=allow protocol=TCP localport=80
+         ```
+      
+      - 방화벽 규칙 삭제
+         ```Powershell
+         > netsh advfirewall firewall delete rule name="Allow WSL 80"
+         ```
 
 
 

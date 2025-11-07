@@ -24,27 +24,59 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
 
 - 프로젝트 구성
     ```
-    /var/www/jsp.localhost/
+    /var/www/<webroot>/
                     ├── /WEB-INF/src/user/
                     │                 └── RegisterServlet.java ← Servlet (Controller)
-                    └── user/
+                    └── /user/
                          ├── register.jsp ← 회원가입 폼 (View)
                          └── welcome.jsp ← 가입 후 결과 페이지 (View)
                     
     ```
 
+1. `/WEB-INF/src/user/RegisterServlet.java` 
+    ```java
+    package user;
 
-1. 프로젝트 안에 디렉터리 및 파일 생성
+    import jakarta.servlet.ServletException;
+    import jakarta.servlet.annotation.WebServlet;
+    import jakarta.servlet.http.*;
+    import java.io.IOException;
 
-    ```bash
-    mkdir -p /var/www/<subdomain>.localhost/user/ && mkdir -p /var/www/<subdomain>.localhost/WEB-INF/src/user
+    @WebServlet("/user/register")
+    public class RegisterServlet extends HttpServlet {
+
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            req.setCharacterEncoding("UTF-8");
+
+            req.getRequestDispatcher("/WEB-INF/views/user/register.jsp").forward(req, resp);
+        }
+
+        @Override
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            req.setCharacterEncoding("UTF-8");
+
+            String email = req.getParameter("email");
+            String username = req.getParameter("username");
+            String age = req.getParameter("age");        
+
+            // (DB 저장 로직 가능) - 지금은 단순히 값만 JSP로 전달
+            // ...
+            // ...
+            // ...
+            // (DB 저장 로직 끝)
+
+            req.setAttribute("email", email);
+            req.setAttribute("username", username);
+            req.setAttribute("age", age);
+
+            req.getRequestDispatcher("/WEB-INF/views/user/welcome.jsp").forward(req, resp);
+        }
+    }
     ```
 
-    ```bash
-    touch /var/www/<subdomain>.localhost/user/register.jsp && touch /var/www/<subdomain>.localhost/user/welcome.jsp && touch /var/www/<subdomain>.localhost/WEB-INF/src/user/RegisterServlet.java
-    ```
 
-2. `/user/register.jsp` 파일 작성
+2. `/WEB-INF/views/user/register.html` 파일 
     ```html
     <%@ page contentType="text/html; charset=UTF-8" %>
     <!DOCTYPE html>
@@ -71,41 +103,8 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
     </html>
     ```
 
-4. `/src/user/RegisterServlet.java` 파일 작성
-    ```java
-    package user;
 
-    import jakarta.servlet.ServletException;
-    import jakarta.servlet.annotation.WebServlet;
-    import jakarta.servlet.http.*;
-    import java.io.IOException;
-
-    @WebServlet("/user/register")
-    public class RegisterServlet extends HttpServlet {
-        @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-            req.setCharacterEncoding("UTF-8");
-
-            String email = req.getParameter("email");
-            String username = req.getParameter("username");
-            String age = req.getParameter("age");        
-
-            // (DB 저장 로직 가능) - 지금은 단순히 값만 JSP로 전달
-            // ...
-            // ...
-            // ...
-            // (DB 저장 로직 끝)
-
-            req.setAttribute("email", email);
-            req.setAttribute("username", username);
-            req.setAttribute("age", age);
-
-            req.getRequestDispatcher("/user/welcome.jsp").forward(req, resp);
-        }
-    }
-    ```
-
-5. `/user/welcome.jsp` 파일 작성
+3. `/WEB-INF/views/user/welcome.jsp` 파일 작성
     ```html
     <%@ page contentType="text/html; charset=UTF-8" %>
     <!DOCTYPE html>
@@ -130,23 +129,11 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
             <p><strong>나이:</strong>  ${age}</p>
         </div>
 
-        <a href="/user/register.jsp" class="btn-home">다시하기</a>
+        <a href="/user/register" class="btn-home">다시하기</a>
     </div>
     </body>
     </html>
     ```
-
-    > ${}는 JSP에서 데이터를 출력하기 위한 EL(Expression Language) 문법으로, request나 session에 저장한 값을 매우 쉽게 가져올 수 있게 해준다.
-
-    | 표현                           | 설명                       | 예시                             |
-    | ---------------------------- | ------------------------ | ------------------------------ |
-    | `${param.name}`              | GET/POST로 전송된 파라미터 값     | `?name=hong` → `${param.name}` |
-    | `${requestScope.key}`        | request.setAttribute() 값 | `${requestScope.username}`     |
-    | `${sessionScope.key}`        | session에 저장된 값           | `${sessionScope.userId}`       |
-    | `${applicationScope.key}`    | ServletContext에 저장된 값    | `${applicationScope.count}`    |
-    | `${cookie.cookieName.value}` | 쿠키 값 접근                  | `${cookie.userId.value}`       |
-    | `${header["User-Agent"]}`    | 요청 헤더 값                  | 브라우저 정보 출력                     |
-    | `${paramValues.hobby[0]}`    | 동일 name 파라미터 배열          | 체크박스 값                         |
 
 
 6. `Ctrl` + `Sfhit` + `B` 로 빌드 후 Tomcat 재시작

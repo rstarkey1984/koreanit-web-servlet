@@ -80,13 +80,6 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
       ```Powershell
       > wsl
       ```
-   - Windows의 드라이브(C:) 의 /mnt/c 경로로 가는걸 방지: ( ~/.bashrc 파일 수정 )
-      ```bash
-      echo 'cd ~' >> ~/.bashrc
-      ```
-      - `echo 'cd ~'` : 문자열 "cd ~" 를 출력한다
-
-      - `>> ~/.bashrc` : 출력된 결과를 `~/.bashrc` 파일 맨 아래에 추가한다.
 
    - 새로운 hostname 으로 변경
 
