@@ -225,16 +225,16 @@
         }
         ```
 
-- 완성된 전체 구조 
+- Tomcata + Servret 작업 디렉터리 완성된 전체 구조 
 
     ```
-    /var/www/<subdomain>.localhost
-    ├── index.html
-    └── WEB-INF/
-        ├── web.xml                # Web Application 설정 파일
-        ├── classes/               # 컴파일된 .class 파일 저장
-        ├── lib/                   # 추가 라이브러리(JAR 파일) 저장
-        └── src/                   # (Optional) .java 소스 파일 저장용
+    /var/www/<webapp-root>
+                ├── index.html
+                └── WEB-INF/
+                    ├── web.xml                # Web Application 설정 파일
+                    ├── classes/               # 컴파일된 .class 파일 저장
+                    ├── lib/                   # 추가 라이브러리(JAR 파일) 저장
+                    └── src/                   # (Optional) .java 소스 파일 저장용
     ```
 
 
@@ -266,11 +266,11 @@
     sudo systemctl restart tomcat
     ```
 
-- 브라우저에서 http://`<subdomain>`.localhost:8080/ 열기
+- 브라우저에서 http://`<subdomain>`.localhost:8081/ 열기
     - 흰색 빈 페이지가 뜨면 정상. 404 에러 페이지가 뜬다면 문제 있음.
     
 
-- `http://<subdomain>.localhost:8080/index.html` 페이지 작성 
+- `/var/www/<subdomain>.localhost/index.html` 페이지 작성 
 
     - `index.html` 내용 편집
 
@@ -306,7 +306,7 @@
         </html>
         ```
 
-    4. 브라우저에서 http://`<subdomain>`.localhost:8080 열기
+    4. 브라우저에서 http://`<subdomain>`.localhost:8081 열기
 
 
 ## 8. Nginx 를 리버스 프록시 서버로 사용하기
@@ -344,39 +344,29 @@
 - `/sites-available/java.localhost` 파일에 아래 내용을 입력:
     ```nginx
     server {
-        listen 80;              # IPv4 환경에서 모든 IP의 80 포트 요청을 수신
-        listen [::]:80;         # IPv6 환경에서 모든 IP의 80 포트 요청을 수신
+        listen 80;              # IPv4에서 포트 80으로 들어오는 HTTP 요청을 받음
+        listen [::]:80;         # IPv6에서도 포트 80으로 들어오는 HTTP 요청을 받음
 
-        server_name java.localhost;
-        # 클라이언트 요청의 Host 헤더 값이 java.localhost 와 일치할 때만
-        # 이 server 블록이 처리함.
+        server_name java.localhost;  # 클라이언트 요청의 Host 헤더가 'java.localhost'일 때 이 서버 블록이 실행됨
 
-        charset utf-8;          # 응답하는 콘텐츠의 기본 인코딩을 UTF-8로 지정
+        charset utf-8;          # 기본 응답 문자 인코딩을 UTF-8로 설정
 
         location / {
-            proxy_pass http://127.0.0.1:8081;
-            # 들어온 모든 요청을 WSL 내부의 Tomcat 서버(127.0.0.1:8081)로 전달
+            # 클라이언트의 모든 요청을 내부의 Tomcat 서버(WSL에서 실행 중인 http://127.0.0.1:8081)로 전달.
+            # 뒤에 '/'가 붙어 있기 때문에, 클라이언트 요청의 경로를 그대로 Tomcat에 붙여서 전달함.
+            # 예) http://java.localhost/test → http://127.0.0.1:8081/test
+            proxy_pass http://127.0.0.1:8081/;
 
-            proxy_set_header Host <톰캣가상호스트이름>;
-            # Tomcat에 전달되는 HTTP 요청의 Host 헤더 값을 강제로 변경
-            # (Tomcat이 가상 호스트나 Host 기반 설정을 사용하는 경우 필요할 수 있음)
-
-            proxy_set_header X-Real-IP $remote_addr;
-            # 실제 클라이언트의 IP를 Tomcat에 전달
-            # (기본적으로 Tomcat은 프록시 서버의 IP만 보기 때문에 원래 IP 전달을 위해 사용)
-
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            # 프록시를 거친 클라이언트의 IP 주소 목록을 전달
-            # 예) 원래 클라이언트 IP, 중간 프록시 IP 등이 포함됨
-
-            proxy_set_header X-Forwarded-Proto $scheme;
-            # 클라이언트가 요청에 사용한 프로토콜(HTTP/HTTPS)을 Tomcat에 전달
-
-            proxy_set_header User-Agent $http_user_agent;
-            # 원본 클라이언트의 브라우저 정보(User-Agent)를 그대로 Tomcat에 전달
+            # 프록시 요청 시 전달되는 Host 헤더를 강제로 '<subdomain>.localhost'로 변경.
+            # (Tomcat이나 WAS 내부에서 req.getServerName(), req.getHeader("Host") 값을 이 값으로 인식함)
+            # 만약 원래 요청된 도메인(java.localhost)을 그대로 전달하고 싶다면 $host를 쓰는 게 일반적임:
+            # proxy_set_header Host $host;
+            proxy_set_header Host <subdomain>.localhost;
         }
     }
+
     ``` 
+- 
 
 - `systemctl` 쓸때 앞으로 패스워드 묻지 않도록 설정
 

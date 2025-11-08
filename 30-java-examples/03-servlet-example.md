@@ -84,14 +84,10 @@ Java Servlet 작동 방식을 알아보자.
 
   ### 1. `web.xml`을 이용한 매핑 예제
 
-  - `HelloServlet_01.java` 파일 생성:
-
-    ```bash
-    touch /var/www/<subdomain>.localhost/WEB-INF/src/HelloServlet_01.java
-    ```
-
-  - `/WEB-INF/src/HelloServlet_01.java` 파일내용 입력:
+  - `HelloServlet_01.java` 파일
     ```java
+    package localhost.myapp.ex;
+
     import jakarta.servlet.http.*; // 서블릿 관련 HttpServlet, HttpServletRequest, HttpServletResponse 포함
     import java.io.IOException; // 입출력 작업 중 발생할 수 있는 예외 처리를 위해 필요한 클래스
     import java.io.PrintWriter; // PrintWriter 클래스를 사용하기 위해 java.io 패키지에서 불러옴
@@ -143,7 +139,7 @@ Java Servlet 작동 방식을 알아보자.
 
         <!-- 실제 자바 서블릿 클래스 이름 (패키지가 없다면 클래스 이름만 작성) -->
         <!-- 예: 패키지가 있다면 com.example.HelloServlet_01 처럼 작성 -->
-        <servlet-class>HelloServlet_01</servlet-class>
+        <servlet-class>java.localhost.ex.HelloServlet_01</servlet-class>
     </servlet>
 
     <!-- 2. 특정 URL 패턴을 위에서 정의한 서블릿과 연결하는 설정 -->
@@ -154,26 +150,24 @@ Java Servlet 작동 방식을 알아보자.
         <!-- 클라이언트가 이 URL로 요청하면 해당 서블릿이 실행됨 -->
         <!-- 예: http://localhost:8080/프로젝트명/hello_01 -->
         <!-- @Annotation 이랑 경로가 겹치면 Tomcat 서버 시작시 에러 -->
-        <url-pattern>/hello.do</url-pattern>
+        <url-pattern>/ex/hello_01</url-pattern>
     </servlet-mapping>
     ```
 
   ### 2. @WebServlet 어노테이션(Annotation)을 이용한 간편 매핑 예제
 
-  - `HelloServlet2.java` 파일 생성:
-    ```bash
-    touch /var/www/<subdomain>.localhost/WEB-INF/src/HelloServlet_02.java
-    ```  
+  - `HelloServlet_02.java` 파일
 
-  - `/WEB-INF/src/HelloServlet_02.java` 파일 찾아서 아래 내용 입력:
     ```java    
+    package localhost.myapp.ex;
+
     import jakarta.servlet.http.*; // 서블릿 관련 HttpServlet, HttpServletRequest, HttpServletResponse 포함
     import java.io.IOException; // 입출력 작업 중 발생할 수 있는 예외 처리를 위해 필요한 클래스
     import java.io.PrintWriter; // PrintWriter 클래스를 사용하기 위해 java.io 패키지에서 불러옴
     import jakarta.servlet.annotation.*; // @WebServlet 같은 애노테이션 사용을 위해 필요
 
-    // 이 서블릿을 "/hello_02" URL로 매핑 (브라우저에서 /hello_02 로 요청하면 이 클래스가 실행됨)
-    @WebServlet("/hello_02")
+    // 이 서블릿을 "/ex/hello_02" URL로 매핑 (브라우저에서 /ex/hello_02 로 요청하면 이 클래스가 실행됨)
+    @WebServlet("/ex/hello_02")
     public class HelloServlet_02 extends HttpServlet {
 
         // GET 요청이 들어왔을 때 실행되는 메서드 (예: 브라우저 주소창에서 접속했을 때)
@@ -230,19 +224,27 @@ Java Servlet 작동 방식을 알아보자.
     ```bash
     #!/bin/bash
 
-    # Java 소스 파일을 컴파일하는 명령어
-    # -encoding UTF-8      : 소스 파일 인코딩을 UTF-8로 지정
-    # -cp                  : 클래스패스(classpath) 설정 (서블릿 API와 라이브러리, 클래스 위치)
-    # -d                   : 컴파일된 .class 파일이 저장될 출력 디렉터리 지정
-    # $(find ...)          : src 디렉터리에서 모든 .java 파일을 찾아 컴파일 대상으로 전달
+    # 오류나면 멈추고, 없는 변수 쓰면 에러, 파이프 중간 실패도 감지
+    set -euo pipefail
+
+    # 프로젝트 경로
+    PROJECT_HOME="/var/www/<subdomain>.localhost"
+
+    # 이전 클래스 파일 삭제
+    rm -rf "$PROJECT_HOME/WEB-INF/classes"
+
+    # 새 클래스 디렉터리 생성
+    mkdir -p "$PROJECT_HOME/WEB-INF/classes"
+
+    # Java 파일 컴파일
     javac -encoding UTF-8 \
-      -cp /usr/share/tomcat10/lib/servlet-api.jar:WEB-INF/classes:WEB-INF/lib/* \
-      -d /var/www/jsp.servlet.localhost/WEB-INF/classes \
-      $(find /var/www/jsp.servlet.localhost/WEB-INF/src/ -name "*.java")
+      -cp /usr/share/tomcat10/lib/servlet-api.jar:"$PROJECT_HOME/WEB-INF/classes":"$PROJECT_HOME/WEB-INF/lib/*" \
+      -d "$PROJECT_HOME/WEB-INF/classes" \
+      $(find "$PROJECT_HOME/WEB-INF/src/" -name "*.java")
 
     # Tomcat 서버 재시작
-    # 새로운 .class 파일을 반영하기 위해 Tomcat을 다시 시작
     sudo systemctl restart tomcat10
+
     ```
 
 6. 스크립트 실행
@@ -317,7 +319,9 @@ Java Servlet 작동 방식을 알아보자.
     log-tomcat
     ```
 
-## 5. Tomcat 재시작 시 세션 초기화 문제 
+## 5. .class 파일 변경 시 자동 리로드
+
+## 6. Tomcat 재시작 시 세션 초기화 문제 
 > Tomcat는 기본적으로 “메모리 세션” 이라서 프로세스를 재시작하면 세션이 사라집니다. 재시작 이후에도 유지하려면 세션을 파일에 저장하거나, 외부 저장소(예: Redis)로 세션을 빼야 합니다. 
 
 1. 톰캣의 파일 기반 세션 저장 켜기 - `/etc/tomcat10/server.xml` 파일을 열어서 아래 내용 수정
@@ -329,42 +333,24 @@ Java Servlet 작동 방식을 알아보자.
 
     - 수정된 Context 태그
       ```xml       
-      <Context path="" docBase="/var/www/<subdomain>.localhost">
-          <!--           
-          ▼ 세션 저장 설정 (StandardManager 기본값 사용)
-          - Tomcat이 종료될 때 현재 세션 정보를 파일로 저장하고,
-            다시 시작하면 SESSIONS.ser 파일에서 세션을 복원합니다.
-          - kill -9 등 강제 종료 시 저장되지 않음
-          -->
-          <Manager pathname="SESSIONS.ser" />
+      <!-- 웹 애플리케이션 설정 -->   
+      <Context path="" docBase="/var/www/<subdomain>.localhost" reloadable="true">
+            <!-- path="" : URL 경로 (빈 값이면 docBase 파일위치 루트에서 접근) -->
+            <!-- docBase="" : 실제 웹 애플리케이션 파일 위치 -->
+            <!-- reloadable="true" : 클래스나 JAR 파일 변경 시 자동으로 애플리케이션 리로드 -->
+
+            <!-- 세션을 파일로 저장하도록 설정하는 부분 (StandardManager 기본값 사용)
+            - SESSIONS.ser 파일로 저장됨 
+            - Tomcat이 종료될 때 현재 세션 정보를 파일로 저장하고,
+            - 다시 시작하면 SESSIONS.ser 파일에서 세션을 복원합니다.
+            - kill -9 등 강제 종료 시 저장되지 않음 -->
+            <Manager pathname="SESSIONS.ser" />               
       </Context>
       ```
 
-    - `<Manager>` 기본 동작
-      ```xml
-      <!--
-        StandardManager 기본 설정 설명:
-        - pathname            : 기본값은 null → 파일 저장 안 함 (값을 주면 SESSIONS.ser로 저장/복원)
-        - className           : 기본값 org.apache.catalina.session.StandardManager 
-        - maxActiveSessions   : 기본값 -1 → 세션 개수 제한 없음
-        - processExpiresFrequency : 기본값 6 → 만료된 세션 정리 작업을 요청 6번마다 수행
-        - sessionIdLength     : 기본값 16 → 세션 ID 길이 (byte 단위 → 보통 32자리 문자열)
-      -->
-      <Manager
-          className="org.apache.catalina.session.StandardManager"
-          maxActiveSessions="-1"
-          processExpiresFrequency="6"
-          sessionIdLength="16"
-      />
-      ```
-
   2. 적용하기 위해 재시작
-      ```
-      restart-tomcat
-      ```
+      - `VSCode`에서 `Ctrl` + `Shift` + `B` ( 빌드 & 톰캣 재시작 )
     
 
 ## 🧩 실습 / 과제
-1. `log-tomcat` 을 터미널에서 띄워서 로그 확인하기.
-
-2. 예제 폴더에 있는 LifeCycleServlet.java 를 http://java.localhost/ex/life 화면에 출력하고 코드 리뷰 같이 진행
+1. 예제 폴더에 있는 LifeCycleServlet.java 를 http://java.localhost/ex/life 화면에 출력하고 코드 리뷰 같이 진행

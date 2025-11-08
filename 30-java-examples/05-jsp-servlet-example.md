@@ -24,18 +24,25 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
 
 - 프로젝트 구성
     ```
-    /var/www/<webroot>/
-                    ├── /WEB-INF/src/user/
-                    │                 └── RegisterServlet.java ← Servlet (Controller)
-                    └── /user/
-                         ├── register.jsp ← 회원가입 폼 (View)
-                         └── welcome.jsp ← 가입 후 결과 페이지 (View)
-                    
+    / (웹 루트)
+        ├─ index.jsp                          ← 첫 진입 페이지       
+        └─ WEB-INF/                           ← 외부에서 직접 접근 불가 (보안용)
+            ├─ web.xml                        ← 서블릿/필터/리스너 매핑
+            ├─ view/                          ← JSP(View) 모음
+            │   └─ user/
+            │       ├─ register.jsp
+            │       └─ welcome.jsp
+            ├─ src/                           ← Java 소스(Controller)
+            │   └─ localhost.myapp.user/      ← 패키지: controller 역할(서블릿)
+            │       └─ RegisterServlet.java
+            ├─ classes/                       ← 컴파일 산출물(.class) — javac -d 가 배치
+            │   └─ (패키지 구조대로 생성됨)
+            └─ lib/                           ← JDBC 드라이버 등 서드파티 JAR
     ```
 
-1. `/WEB-INF/src/user/RegisterServlet.java` 
+1. `RegisterServlet.java` 
     ```java
-    package user;
+    package localhost.myapp.user;
 
     import jakarta.servlet.ServletException;
     import jakarta.servlet.annotation.WebServlet;
@@ -49,7 +56,7 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             req.setCharacterEncoding("UTF-8");
 
-            req.getRequestDispatcher("/WEB-INF/views/user/register.jsp").forward(req, resp);
+            req.getRequestDispatcher("/WEB-INF/view/user/register.jsp").forward(req, resp);
         }
 
         @Override
@@ -70,13 +77,13 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
             req.setAttribute("username", username);
             req.setAttribute("age", age);
 
-            req.getRequestDispatcher("/WEB-INF/views/user/welcome.jsp").forward(req, resp);
+            req.getRequestDispatcher("/WEB-INF/view/user/welcome.jsp").forward(req, resp);
         }
     }
     ```
 
 
-2. `/WEB-INF/views/user/register.html` 파일 
+2. `/WEB-INF/view/user/register.jsp` 파일 
     ```html
     <%@ page contentType="text/html; charset=UTF-8" %>
     <!DOCTYPE html>
@@ -104,7 +111,7 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
     ```
 
 
-3. `/WEB-INF/views/user/welcome.jsp` 파일 작성
+3. `/WEB-INF/view/user/welcome.jsp` 파일 작성
     ```html
     <%@ page contentType="text/html; charset=UTF-8" %>
     <!DOCTYPE html>
@@ -138,5 +145,5 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
 
 6. `Ctrl` + `Sfhit` + `B` 로 빌드 후 Tomcat 재시작
 
-7. http://`<subdomain>`.localhost/user/register.jsp 에서 동작 확인
+7. http://java.localhost/user/register 에서 동작 확인
 
