@@ -8,7 +8,7 @@
 
 - Servlet Filter(필터) 역할과 구현방법
 
-- Servlet Listener(리스너) 역할와 구현방법
+- Servlet Listener(리스너) 역할과 구현방법
 
 ---
 ## 1. Servlet Filter(필터)
