@@ -7,6 +7,7 @@ Ubuntu PATH(환경변수)의 역할을 알아보고 alias(별칭) 등록을 해�
 ## 💡 주요 내용
 - Ubuntu PATH(환경변수)의 역할
 - alias(별칭) 등록
+- Ubuntu에서 시간대를 Asia/Seoul (한국 시간) 로 변경
 ---
 
 ## 1. PATH(환경변수)
@@ -173,6 +174,35 @@ Ubuntu PATH(환경변수)의 역할을 알아보고 alias(별칭) 등록을 해�
     ```
     > `source` 명령어는 파일 안에 있는 명령어들을 현재 쉘에서 실행하는 명령어
 
+## 3. Ubuntu에서 시간대를 Asia/Seoul (한국 시간) 로 변경
+
+1. 현재 시간대 확인
+
+    ```bash
+    timedatectl
+    ```
+
+2. 시간대를 Asia/Seoul 로 변경
+
+    ```bash
+    sudo timedatectl set-timezone Asia/Seoul
+    ```
+
+3. 다시 확인
+    ```bash
+    timedatectl
+    ```
+
+    출력이 아래처럼 나오면 성공
+    ```
+                  Local time: Mon 2025-11-10 00:54:15 KST
+              Universal time: Sun 2025-11-09 15:54:15 UTC
+                    RTC time: Sun 2025-11-09 15:54:14
+                   Time zone: Asia/Seoul (KST, +0900)                
+   System clock synchronized: yes
+                 NTP service: active
+             RTC in local TZ: no
+    ```
 
 ## 💡 **요약정리**  
 > `PATH`란, 운영체제(특히 Unix/Linux의 쉘 환경)에서 명령어를 실행할 때 “어떤 디렉터리들에서 실행 파일을 찾을지” 지정해 놓은 환경 변수입니다.
