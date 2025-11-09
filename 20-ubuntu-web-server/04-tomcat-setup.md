@@ -200,7 +200,7 @@
 
 - Java servlet 프로젝트에 대한 `VSCode` 설정 파일 만들기
 
-    1. .vscode 설정 폴더 생성
+    1. .vscode 설정 폴더 생성 
         ```bash
         mkdir -p /var/www/<subdomain>.localhost/.vscode
         ```
@@ -249,8 +249,19 @@
 - 아래 내용을 `<Engine>...</Engine>` 안에 추가
 
     ```xml
-    <Host name="<subdomain>.localhost" appBase="webapps/<subdomain>.localhost">        
-        <Context path="" docBase="/var/www/<subdomain>.localhost" />
+    <Host name="<subdomain>.localhost">        
+        <Context path="" docBase="/var/www/<subdomain>.localhost" reloadable="true">
+            <!-- path="" : URL 경로 (빈 값이면 docBase 파일위치 루트에서 접근) -->
+            <!-- docBase="" : 실제 웹 애플리케이션 파일 위치 -->
+            <!-- reloadable="true" : 클래스나 JAR 파일 변경 시 자동으로 애플리케이션 리로드 -->
+
+            <!-- 세션을 파일로 저장하도록 설정하는 부분 (StandardManager 기본값 사용)
+            - SESSIONS.ser 파일로 저장됨 
+            - Tomcat이 종료될 때 현재 세션 정보를 파일로 저장하고,
+            - 다시 시작하면 SESSIONS.ser 파일에서 세션을 복원합니다.
+            - kill -9 등 강제 종료 시 저장되지 않음 -->
+            <Manager pathname="SESSIONS.ser" />               
+        </Context> 
     </Host>
     ```
 
@@ -344,34 +355,28 @@
 - `/sites-available/java.localhost` 파일에 아래 내용을 입력:
     ```nginx
     server {
-        listen 80;              # IPv4에서 포트 80으로 들어오는 HTTP 요청을 받음
-        listen [::]:80;         # IPv6에서도 포트 80으로 들어오는 HTTP 요청을 받음
+        listen 80;                     # IPv4 기준으로 80번 포트(HTTP 요청)를 수신
+        listen [::]:80;                # IPv6 환경에서도 80번 포트 요청을 수신
 
-        server_name java.localhost;  # 클라이언트 요청의 Host 헤더가 'java.localhost'일 때 이 서버 블록이 실행됨
+        server_name java.localhost;    # Host 헤더가 'java.localhost'일 때 이 서버 블록으로 연결
 
-        charset utf-8;          # 기본 응답 문자 인코딩을 UTF-8로 설정
+        charset utf-8;                 # 응답에 기본 문자 인코딩을 UTF-8로 설정 (Content-Type 기반)
 
-        location / {
-            # 클라이언트의 모든 요청을 내부의 Tomcat 서버(WSL에서 실행 중인 http://127.0.0.1:8081)로 전달.
-            # 뒤에 '/'가 붙어 있기 때문에, 클라이언트 요청의 경로를 그대로 Tomcat에 붙여서 전달함.
-            # 예) http://java.localhost/test → http://127.0.0.1:8081/test
-            proxy_pass http://127.0.0.1:8081/;
+        location / {                # / 로 시작하는 모든 요청을 처리하는 블록
 
-            # 프록시 요청 시 전달되는 Host 헤더를 강제로 '<subdomain>.localhost'로 변경.
-            # (Tomcat이나 WAS 내부에서 req.getServerName(), req.getHeader("Host") 값을 이 값으로 인식함)
-            # 만약 원래 요청된 도메인(java.localhost)을 그대로 전달하고 싶다면 $host를 쓰는 게 일반적임:
-            # proxy_set_header Host $host;
-            proxy_set_header Host <subdomain>.localhost;
+            proxy_pass http://127.0.0.1:8081/;  # 요청을 내부의 Tomcat 또는 다른 서버(127.0.0.1:8081)로 전달
+
+            proxy_set_header Host <톰캣서브도메인>.localhost; # 백엔드 서버에 전달할 Host 헤더를 강제로 변경 (도메인 기반 처리가 필요할 때 사용)
+
         }
     }
-
     ``` 
 - 
 
-- `systemctl` 쓸때 앞으로 패스워드 묻지 않도록 설정
+- `systemctl` 쓸때 앞으로 패스워드 묻지 않도록 설정: ( `<user>` 부분 수정해야됨 )
 
     ```bash
-    echo "<user> ALL=NOPASSWD: /usr/bin/systemctl" | sudo tee /etc/sudoers.d/systemctl-nopasswd > /dev/null
+    echo "<user> ALL=(root) NOPASSWD: /usr/bin/systemctl" | sudo tee /etc/sudoers.d/systemctl-nopasswd
     ```
 
 - Nginx 재시작
@@ -386,5 +391,4 @@
 ## 💡 **요약정리**  
 > Tomcat 은 Java 기반 웹 애플리케이션을 실행하는 WAS(Web Application Server) 입니다.
 
-## 🧩 실습 / 과제
-- 실제로 존재하는 http://example.com 페이지 화면을 http://example.localhost 접속시 보이도록 해보자.
+> Nginx 를 리버스 프록시로 활용하면 정적파일(html, css, javascript, image 등)은 Nginx 에서 응답하고 데이터 처리가 필요한 경우 /api 경로 등으로 Tomcat 을 활용할수 있습니다.

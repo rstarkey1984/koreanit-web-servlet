@@ -24,10 +24,12 @@
 3. [Java Servlet 작동방식](30-java-examples/03-servlet-example.md)
 4. [JSP 작동방식](30-java-examples/04-jsp-example.md)
 5. [JSP/Servlet을 같이 사용하는 방법 실습](30-java-examples/05-jsp-servlet-example.md)
+6. [Servlet Filter(필터) 와 Listener(리스너) 구현](30-java-examples/06-servlet-filter-listener.md)
 
+### 4️⃣ MySQL
+1. [MySQL 설치 및 설정](40-mysql-setup/01-mysql-setup.md)
 
-
-###  전체적인 웹의 동작구조
+### 5️⃣ 전체적인 웹의 동작구조
 1. [브라우저에서 `www.google.com` 을 입력했을 때의 전체 흐름](00-web-structure/01-web-flow.md)
 
 

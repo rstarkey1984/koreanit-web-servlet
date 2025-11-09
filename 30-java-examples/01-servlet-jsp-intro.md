@@ -93,5 +93,6 @@
 --- 
 
 ## 💡 **요약정리**  
-> 1. Servlet은 **요청 처리(Controller)**, JSP는 **화면 출력(View)** 역할 담당 
-> 2. JSP도 결국 **Servlet으로 변환되어 실행** 됩니다.
+> Servlet은 **요청 처리(Controller)**, JSP는 **화면 출력(View)** 역할 담당 
+
+> JSP도 결국 **Servlet으로 변환되어 실행** 됩니다.

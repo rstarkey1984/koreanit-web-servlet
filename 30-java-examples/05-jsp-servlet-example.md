@@ -54,14 +54,15 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
 
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-            req.setCharacterEncoding("UTF-8");
+            //req.setCharacterEncoding("UTF-8");
 
+            // 현재 요청/응답을 그대로 유지한 채 서버 내부에서 register.jsp로 포워딩
             req.getRequestDispatcher("/WEB-INF/view/user/register.jsp").forward(req, resp);
         }
 
         @Override
         protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-            req.setCharacterEncoding("UTF-8");
+            //req.setCharacterEncoding("UTF-8");
 
             String email = req.getParameter("email");
             String username = req.getParameter("username");
@@ -77,6 +78,7 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
             req.setAttribute("username", username);
             req.setAttribute("age", age);
 
+            // 현재 요청/응답을 그대로 유지한 채 서버 내부에서 register.jsp로 포워딩
             req.getRequestDispatcher("/WEB-INF/view/user/welcome.jsp").forward(req, resp);
         }
     }
@@ -90,7 +92,7 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
     <html>
     <head>
         <meta charset="UTF-8">
-        <title>회원 가입 페이지</title>
+        <title>회원가입 페이지</title>
         <!-- css 태그 -->
         <style> 
             html { color-scheme: light dark; }
@@ -145,5 +147,6 @@ Form 데이터 전송 → Servlet 처리 → JSP 출력 흐름을 실습 예제�
 
 6. `Ctrl` + `Sfhit` + `B` 로 빌드 후 Tomcat 재시작
 
-7. http://java.localhost/user/register 에서 동작 확인
+## 🧩 실습 / 과제
+- http://java.localhost/user/register 에서 동작 확인
 

@@ -319,9 +319,32 @@ Java Servlet 작동 방식을 알아보자.
     log-tomcat
     ```
 
-## 5. .class 파일 변경 시 자동 리로드
+## 5. Tomcat GET 요청 파라미터 한글 깨짐 문제 해결
 
-## 6. Tomcat 재시작 시 세션 초기화 문제 
+- Tomcat `server.xml`에서 `<Connector` ... `여기에 아래내용 추가` ... `/>`
+
+  ```xml
+  URIEncoding="UTF-8"
+  useBodyEncodingForURI="true"
+  ```
+- 예시
+  ```xml
+  <Connector port="8081" protocol="HTTP/1.1"
+                connectionTimeout="20000"
+                redirectPort="8443"
+                maxParameterCount="1000"
+                URIEncoding="UTF-8"
+                useBodyEncodingForURI="true"
+                />
+  ```
+
+  | 설정                             | 역할                                                    | 기본값        | 꼭 필요한 상황                               |
+  | ------------------------------ | ----------------------------------------------------- | ---------- | -------------------------------------- |
+  | `URIEncoding="UTF-8"`          | **URL(QueryString, GET 파라미터) 인코딩 방식 지정**              | ISO-8859-1 | **GET 요청에 한글 포함될 때 필수**                |
+  | `useBodyEncodingForURI="true"` | `request.setCharacterEncoding()` 설정을 **URL 인코딩에도 적용** | false      | **POST + GET 모두 통일해서 UTF-8 처리하고 싶을 때** |
+
+
+## 6. Tomcat 재시작 시 세션 초기화 문제
 > Tomcat는 기본적으로 “메모리 세션” 이라서 프로세스를 재시작하면 세션이 사라집니다. 재시작 이후에도 유지하려면 세션을 파일에 저장하거나, 외부 저장소(예: Redis)로 세션을 빼야 합니다. 
 
 1. 톰캣의 파일 기반 세션 저장 켜기 - `/etc/tomcat10/server.xml` 파일을 열어서 아래 내용 수정
@@ -350,7 +373,7 @@ Java Servlet 작동 방식을 알아보자.
 
   2. 적용하기 위해 재시작
       - `VSCode`에서 `Ctrl` + `Shift` + `B` ( 빌드 & 톰캣 재시작 )
-    
+
 
 ## 🧩 실습 / 과제
-1. 예제 폴더에 있는 LifeCycleServlet.java 를 http://java.localhost/ex/life 화면에 출력하고 코드 리뷰 같이 진행
+1. 예제 폴더에 있는 LifeCycleServlet.java 를 http://java.localhost/ex/life 화면에 출력하기.

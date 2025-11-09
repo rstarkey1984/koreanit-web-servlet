@@ -123,9 +123,9 @@
       ```
       - `ln -s [원본 파일/디렉터리] [링크 이름]` : **심볼릭 링크(Symbolic Link, 또는 소프트 링크)** 생성할 때 사용하는 명령어입니다. 윈도우의 **바로가기(Shortcut)** 와 비슷한 개념이라고 보면 이해하기 쉽습니다.
 
-   - ubuntu 사용자는 `systemctl` 쓸때 앞으로 패스워드 묻지 않도록 설정
+   - ubuntu 사용자는 `systemctl` 쓸때 앞으로 패스워드 묻지 않도록 설정 ( `<user>` 부분 수정해야됨 )
       ```bash
-      echo "ubuntu ALL=NOPASSWD: /usr/bin/systemctl" | sudo tee /etc/sudoers.d/systemctl-nopasswd > /dev/null
+      echo "<user> ALL=(root) NOPASSWD: /usr/bin/systemctl" | sudo tee /etc/sudoers.d/systemctl-nopasswd
       ```
 
    - Nginx 재시작

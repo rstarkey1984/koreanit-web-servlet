@@ -280,7 +280,7 @@ JSP는 작동 방식을 알아보자.
       | 분기  | `<c:choose>`, `<c:when>`, `<c:otherwise>` | if-else 다중 조건    |
       | 반복문 | `<c:forEach>`                             | for 반복문          |
 
-  4. `jstl-test.jsp` ( JSTL 사용 예제 )
+  4. `/ex/jstl-test.jsp` ( JSTL 사용 예제 )
       ```jsp
       <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
       <%@ taglib prefix="c" uri="jakarta.tags.core" %>
