@@ -85,7 +85,7 @@
         응답(Response)
         ```
 
-    3. http://jsp.servlet.localhost:8081/ex/life 접속해서 터미널 로그로 확인 
+    3. http://java.localhost/ex/life 접속해서 터미널 로그로 확인 
     
 ## 2. Servlet Listener(리스너)
 > 웹 애플리케이션의 생명주기나 특정 이벤트를 감지해서 자동으로 실행되는 객체예요.
@@ -176,7 +176,7 @@
     | 요청마다 자동 실행     | 접속자 IP 로그, 요청 소요 시간 측정 |
     | 종료 시           | 자원 반납, 로그 저장           |
 
-4. http://jsp.servlet.localhost:8081/ex/life 접속해서 터미널 로그로 확인
+4. http://java.localhost/ex/life 접속해서 터미널 로그로 확인
 
 
 ## 💡 **요약정리**  
