@@ -1,7 +1,7 @@
 # Servlet Filter(필터) 와 Listener(리스너) 구현
 
 ## 📘 학습 개요
-앞선 Servlet + JSP 예제에서 필터와 리스너를 구현해서 추가한다. ( `/user/register` )
+필터와 리스너를의 역할을 알아보고 구현하기
 
 
 ## 💡 주요 내용
