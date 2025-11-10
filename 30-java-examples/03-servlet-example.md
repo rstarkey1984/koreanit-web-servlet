@@ -321,9 +321,10 @@ Java Servlet 작동 방식을 알아보자.
     log-tomcat
     ```
 
-## 5. Tomcat GET 요청 파라미터 한글 깨짐 문제 해결
 
-**note) ~/etc/ 경로에 nginx, tomcat 링크 폴더 생성하기**
+# **note) ~/etc/ 경로에 nginx, tomcat 링크 폴더 생성하기**
+
+## 5. Tomcat GET 요청 파라미터 한글 깨짐 문제 해결
 
 - Tomcat `server.xml`에서 `<Connector` ... `여기에 아래내용 추가` ... `/>`
 
