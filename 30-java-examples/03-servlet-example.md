@@ -323,6 +323,8 @@ Java Servlet 작동 방식을 알아보자.
 
 ## 5. Tomcat GET 요청 파라미터 한글 깨짐 문제 해결
 
+**note) ~/etc/ 경로에 nginx, tomcat 링크 폴더 생성하기**
+
 - Tomcat `server.xml`에서 `<Connector` ... `여기에 아래내용 추가` ... `/>`
 
   ```xml
@@ -348,7 +350,7 @@ Java Servlet 작동 방식을 알아보자.
 ## 6. Tomcat이 가장 권장하는 “표준적이고 안전한 방식” 으로 `<Context>` 설정하기 
 > Context 정의는 server.xml 안에 직접 넣지 말고, 별도 XML 파일(conf/Catalina/[Host]/[Context].xml)에 두는 것을 권장한다. 즉, **ROOT.xml 방식이 Tomcat이 가장 권장하는 “표준적이고 안전한 방식”** 입니다.
 
-- ROOT.xml이 중요한 이유
+- `ROOT.xml`이 중요한 이유
 
   | 기능              | 설명                                                |
   | --------------- | ------------------------------------------------- |
@@ -402,7 +404,7 @@ Java Servlet 작동 방식을 알아보자.
 
 6. 기존의 `server.xml` 내용 아래처럼 변경 ( 도메인이 다를 경우 확인 )
     ```xml
-    <Host name="jsp.servlet.localhost" appBase="webapps/jsp.servlet.localhost" unpackWARs="false" autoDeploy="false"/>
+    <Host name="jsp.servlet.localhost" appBase="webapps/jsp.servlet.localhost" unpackWARs="false" autoDeploy="false" />
     ```
 
 7. 적용하기 위해 재시작

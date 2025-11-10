@@ -78,28 +78,45 @@ Ubuntu에서 MySQL 설치 및 설정하기
     
     2. 사용자 만들기
 
-        ```mysql
+        ```sql
         CREATE USER '유저'@'localhost' IDENTIFIED BY '비밀번호';
         ```
 
     3. 권한 주기
-        ```mysql
+        ```sql
         GRANT ALL PRIVILEGES ON *.* TO '아이디'@'localhost' WITH GRANT OPTION;
         ```
 
     4. 변경된 사용자 및 권한 적용
-        ```mysql
+        ```sql
         FLUSH PRIVILEGES;
         ```
 
-    5. 사용자 목록 확인;
-        ```mysql
+    5. 사용자 목록 확인
+        ```sql
         SELECT user, host FROM mysql.user;
         ```
 
-    6. 계정삭제
-        ```mysql
+    6. 비밀번호 변경
+        ```sql
+        ALTER USER '아이디'@'localhost' IDENTIFIED BY '비밀번호';
+        ```
+
+    7. 계정삭제
+        ```sql
         DROP USER '유저'@'localhost';
+        ```        
+
+    8. (참고) 비밀번호 정책 확인 및 완화
+        > 비밀번호 정책 때문에 변경이 안될 때는 다음을 확인하세요:
+        ```sql
+        SHOW VARIABLES LIKE 'validate_password%';
+        ```
+        ```sql
+        SET GLOBAL validate_password.policy = LOW;
+        ```
+        ```sql
+        SET GLOBAL validate_password.length = 4;
         ```
 
 ## 3. 데이터베이스 및 테이블 만들기

@@ -7,7 +7,7 @@ Servlet API 에서 CRUD 구현하기 with MySQL
 
 ## 💡 주요 내용
 
-- MySQL 데이터베이스 연결 및 JNDI DataSource 설정
+- DB 연결 풀(DataSource)을 만들고, JNDI를 통해 불러오기
 
 - DAO(Data Access Object) 패턴으로 데이터 처리 로직 분리
 
@@ -19,41 +19,48 @@ Servlet API 에서 CRUD 구현하기 with MySQL
 
 ## ⚙️ 필요한 라이브러리 추가하기
 
-1. 디렉터리 이동 ( `jsp.servlet.localhost` 경로 다르면 확인 )
+1. 디렉터리 이동 ( `jsp.servlet.localhost` 경로 다르면 확인 ):
     ```bash
     cd /var/www/jsp.servlet.localhost/WEB-INF/lib
     ```
 
-2. `gson-2.11.0.jar` 파일 다운로드
+2. `gson-2.11.0.jar` 파일 다운로드:
     ```bash
     wget https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar
     ```
 
-3. `mysql-connector-j-8.0.31.tar.gz` 압축 파일 다운로드
+3. `mysql-connector-j-9.5.0.tar.gz` 압축 파일 다운로드:
     ```bash
     wget https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-9.5.0.tar.gz
     ```
 
-4. `mysql-connector-j-9.5.0.tar.gz` 압축해제
+4. `mysql-connector-j-9.5.0.tar.gz` 압축해제:
     ```bash
     tar -xvf mysql-connector-j-9.5.0.tar.gz
     ```
 
-5. `.jar` 파일만 복사
+5. `.jar` 파일을 톰캣 공용 라이브러리에 복사:
     ```bash
-    cp mysql-connector-j-9.5.0/mysql-connector-j-9.5.0.jar .
+    sudo cp mysql-connector-j-9.5.0/mysql-connector-j-9.5.0.jar /usr/share/tomcat10/lib/
     ```
 ## CRUD 란?
+> CRUD는 Create, Read, Update, Delete 의 약자입니다.
 
-| 구분    | 의미              | 설명                   | HTTP 메서드         |
-| ----- | --------------- | -------------------- | ---------------- |
-| **C** | **Create (생성)** | 새로운 데이터를 **추가**하는 기능 | `POST`           |
-| **R** | **Read (조회)**   | 저장된 데이터를 **읽어오는** 기능 | `GET`            |
-| **U** | **Update (수정)** | 기존 데이터를 **변경하는** 기능  | `PUT` 또는 `PATCH` |
-| **D** | **Delete (삭제)** | 데이터를 **지우는** 기능      | `DELETE`         |
+| 구분    | 의미              | 설명                   | HTTP 메서드         | SQL 명령어 |
+| ----- | --------------- | -------------------- | ---------------- | --- |
+| **C** | **Create (생성)** | 새로운 데이터를 **추가**하는 기능 | `POST`           | `INSERT` |
+| **R** | **Read (조회)**   | 저장된 데이터를 **읽어오는** 기능 | `GET`            | `SELECT` |
+| **U** | **Update (수정)** | 기존 데이터를 **변경하는** 기능  | `PUT` 또는 `PATCH` | `UPDATE` |
+| **D** | **Delete (삭제)** | 데이터를 **지우는** 기능      | `DELETE`         | `DELETE` |
 
 
-## ⚙️ 1. JNDI DataSource 설정 
+## ⚙️ 1. DB 연결 풀(DataSource)을 만들고, JNDI를 통해 불러오기
+
+- DataSource 란? 
+    > 데이터베이스 연결(Connection)을 만들어주는 객체입니다. 톰캣이 미리 여러 개의 연결을 만들어 **“커넥션 풀(Connection Pool)”** 에 보관해두고, 필요할 때마다 getConnection()으로 하나씩 꺼내 쓰는 구조입니다.
+
+- JNDI (Java Naming and Directory Interface) 란?
+    > 자바에서 “이름(Name)”으로 객체(Resource)를 찾아올 수 있는 디렉터리 서비스 API입니다.
 
 - /etc/tomcat10/Catalina/jsp.servlet.localhost/`ROOT.xml` 파일에 `<Resource />` 추가
     ```xml
@@ -77,8 +84,9 @@ Servlet API 에서 CRUD 구현하기 with MySQL
     ...
     </Context>     
     ```
+    - 톰캣이 이 설정을 읽고 `DataSource` 객체를 생성한 뒤, “`jdbc/MyDB`” 이름으로 `JNDI` 환경에 등록(binded)합니다.
 
-- /var/www/jsp.servlet.localhost/WEB-INF/`web.xml`
+- /WEB-INF/`web.xml`
     ```xml
     <resource-ref>
         <description>MySQL Connection Pool</description>
@@ -87,6 +95,33 @@ Servlet API 에서 CRUD 구현하기 with MySQL
         <res-auth>Container</res-auth>
     </resource-ref>
     ```
+    - `<resource-ref>` 태그는 서블릿 코드에서 `JNDI`로 참조할 외부 자원을 “선언(declare)”하는 부분입니다.
+즉, 애플리케이션이 사용할 리소스의 이름(res-ref-name), 타입(res-type), 인증 방식(res-auth) 등을 미리 명시하여,
+톰캣이 해당 이름을 JNDI 환경(java:comp/env/)에 매핑할 수 있도록 알려주는 역할을 합니다.
+
+    - 이 선언 덕분에 서블릿 코드에서는 다음처럼 안전하게 JNDI Lookup을 수행할 수 있습니다:
+        ```java
+        Context ctx = new InitialContext();
+        DataSource ds = (DataSource) ctx.lookup("java:comp/env/jdbc/MyDB");
+        ```
+        > 즉, `<resource-ref>`는 코드에서 사용할 리소스의 계약서(Interface 선언) 역할을 하고, 실제 연결 정보(driverClassName, url, username, password 등)는 `<Context>`의 `<Resource>` 항목에서 구체적으로 구현(define) 됩니다.
+
+- 역할 정리
+
+    | 요소               | 위치                          | 역할            | 톰캣에서의 의미                       |
+    | ---------------- | --------------------------- | ------------- | ------------------------------ |
+    | `<Resource>`     | `context.xml` 또는 `ROOT.xml` | **리소스 정의**    | “이 이름의 DataSource를 톰캣이 관리한다.”  |
+    | `<resource-ref>` | `WEB-INF/web.xml`           | **리소스 참조 선언** | “이 웹앱이 그 DataSource를 사용할 것이다.” |
+
+- 전체 흐름 요약
+
+    | 단계 | 구성요소             | 하는 일                     |
+    | -- | ---------------- | ------------------------ |
+    | ①  | `<Resource>`     | 실제 DB 커넥션 풀을 정의하고 톰캣이 관리 |
+    | ②  | `<resource-ref>` | 웹앱이 사용할 리소스 이름/타입을 선언    |
+    | ③  | Java 코드          | `lookup()`으로 리소스 찾아서 사용  |
+
+
 
 ## 📁 2. 프로젝트 구조
 ```
@@ -110,22 +145,104 @@ import javax.naming.Context;
 import javax.sql.DataSource;
 
 /**
- * JNDI에서 톰캣 커넥션풀(javax.sql.DataSource)을 1회만 조회해 재사용하는 헬퍼.
+ * DB DataSource 헬퍼 (JNDI 기반, Lazy-init + Double-Checked Locking)
+ *
+ * 역할
+ * - 톰캣(JNDI)에 등록된 커넥션 풀(javax.sql.DataSource)을 최초 1회만 조회(lookup)하고,
+ *   이후에는 같은 인스턴스를 재사용한다(캐싱).
+ *
+ * 왜 필요한가
+ * - 매 요청마다 InitialContext.lookup()을 호출하는 것은 불필요한 오버헤드가 될 수 있다.
+ * - 애플리케이션 전역에서 동일한 DataSource를 안전하게 공유하려면 스레드-세이프한 캐시가 유용하다.
+ *
+ * 전제
+ * - 톰캣의 Context 설정에 아래와 같이 Resource가 정의되어 있어야 한다.
+ *   <Resource name="jdbc/MyDB" ... type="javax.sql.DataSource" ... />
+ * - (선택) web.xml에 <resource-ref>로 res-ref-name/res-type 매핑을 선언하면
+ *   컨테이너가 java:comp/env 네임스페이스에 안전하게 바인딩한다.
+ *
+ * 주의 사항
+ * - 실제 커넥션(Connection) 객체는 여기서 만들지 않는다.
+ *   DataSource는 '풀'의 핸들이고, Connection은 필요할 때마다 ds.getConnection()으로 빌려 쓰고 닫는다.
+ * - DataSource 자체는 닫을 필요가 없다(컨테이너가 라이프사이클 관리).
  */
 public class DB {
+
+    /**
+     * DataSource 캐시 필드.
+     *
+     * - volatile:
+     *   더블 체크 락킹(DCL) 패턴에서 가시성/재정렬 문제를 방지하기 위해 필요.
+     *   (JMM 상 안전한 DCL을 보장하기 위한 핵심 키워드)
+     */
     private static volatile DataSource ds;
 
+    /**
+     * 애플리케이션 전역 DataSource 접근자.
+     *
+     * 동작
+     * 1) 최초 호출 시에만 JNDI lookup 수행(느긋한 초기화, Lazy Initialization).
+     * 2) 이후 호출은 캐시된 ds를 즉시 반환(오버헤드 최소화).
+     *
+     * 스레드-세이프
+     * - DCL(Double-Checked Locking) + synchronized 블록으로 초기화 경쟁 방지.
+     *
+     * @return 톰캣이 관리하는 javax.sql.DataSource (커넥션 풀 핸들)
+     * @throws RuntimeException 초기화 실패(예: 네이밍 불일치, 컨텍스트 미바인딩) 시 래핑하여 던짐
+     */
     public static DataSource getDataSource() {
+        // 1차 체크: 이미 초기화된 경우 동기화 없이 빠르게 반환
         if (ds == null) {
             synchronized (DB.class) {
+                // 2차 체크: 여러 스레드가 동시 접근했더라도 최초 1회만 초기화 보장
                 if (ds == null) {
                     try {
+                        // JNDI 초기 컨텍스트
                         Context ic = new InitialContext();
-                        // java:comp/env/  접두사는 웹앱 내부 JNDI 네임스페이스
+
+                        /*
+                         * java:comp/env/ 접두사
+                         * - 웹 애플리케이션마다 분리된 "컴포넌트 전용" JNDI 네임스페이스.
+                         * - <resource-ref>를 사용하면 res-ref-name으로 이 네임스페이스에 매핑된다.
+                         * - 여기서는 "jdbc/MyDB"라는 이름으로 바인딩된 DataSource를 찾는다.
+                         *
+                         * Lookup 이름 정리
+                         * - 애플리케이션 코드에서는 보통 "java:comp/env/jdbc/MyDB"로 조회.
+                         * - 톰캣 Context의 <Resource name="jdbc/MyDB" .../> 와 일치해야 한다.
+                         */
                         ds = (DataSource) ic.lookup("java:comp/env/jdbc/MyDB");
+
+                        /*
+                         * 여기서 DataSource 인스턴스는 '커넥션 풀 관리 객체'이지,
+                         * 실제 DB 커넥션을 바로 만드는 것은 아니다.
+                         * 실제 커넥션은 아래와 같이 필요 시마다 획득:
+                         *
+                         * try (Connection con = ds.getConnection()) {
+                         *     // SQL 작업
+                         * } // con.close() 호출로 커넥션 '반납' (풀로 복귀)
+                         */
+
                     } catch (Exception e) {
-                        // 배포/부팅 시 NameNotFoundException 발생하면, Context/Resource 위치와 이름을 우선 확인
-                        throw new RuntimeException("JNDI lookup failed for 'jdbc/MyDB'. Check Context/Resource naming.", e);
+                        /*
+                         * 대표적인 실패 케이스
+                         * - javax.naming.NameNotFoundException:
+                         *   "jdbc/MyDB" 이름으로 바인딩된 리소스를 찾지 못했을 때.
+                         *   → Context/ROOT.xml(or context.xml)의 <Resource name="jdbc/MyDB".../> 확인
+                         *   → web.xml의 <resource-ref> res-ref-name 일치 여부 확인
+                         *   → 톰캣 재기동 필요 여부 확인
+                         *
+                         * - NoInitialContextException:
+                         *   컨테이너 외부(예: 단위 테스트)에서 실행했고 JNDI가 구성되지 않았을 때.
+                         *
+                         * 복구 전략
+                         * - 배포 환경: 설정/이름 오타 수정 후 재배포
+                         * - 테스트 환경: DataSource를 직접 주입(팩토리/DI), 또는 임베디드 컨테이너 사용
+                         */
+                        throw new RuntimeException(
+                            "JNDI lookup failed for 'jdbc/MyDB'. " +
+                            "Check <Resource name> and <resource-ref> naming/binding in Tomcat Context.",
+                            e
+                        );
                     }
                 }
             }
@@ -135,7 +252,10 @@ public class DB {
 }
 ```
 
-## 👤 4. User 모델 & DAO
+## 👤 4. User Model & DAO
+
+> **Model (데이터 객체)** = DB 테이블 1행(row)을 담는 클래스 = User.java
+
 - `User.java`
 
     ```java
@@ -148,14 +268,16 @@ public class DB {
         public String email;
         public String regDate;
     }
-    ```
+    ``` 
+> **DAO (Data Access Object)** = SQL 실행 / DB 연동 전담 = UserDao.java
 
 - `UserDao.java`
+
     ```java
     package localhost.myapp.dao;
 
-    import com.example.web.DB;
-    import com.example.web.model.User;
+    import localhost.myapp.DB;
+    import localhost.myapp.model.User;
 
     import javax.sql.DataSource;
     import java.sql.*;
@@ -164,7 +286,7 @@ public class DB {
         private final DataSource ds = DB.getDataSource();
 
         public boolean insert(User u) throws SQLException {
-            String sql = "INSERT INTO user (id, password, email) VALUES (?, ?, ?)";
+            String sql = "INSERT INTO user (id, password, email) VALUES (?, sha2(?, 256), ?)";
             try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setString(1, u.id);
@@ -195,7 +317,7 @@ public class DB {
         }
 
         public boolean login(String id, String password) throws SQLException {
-            String sql = "SELECT COUNT(*) FROM user WHERE id=? AND password=?";
+            String sql = "SELECT COUNT(*) FROM user WHERE id=? AND password=sha2(?, 256)";
             try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setString(1, id);
@@ -207,10 +329,11 @@ public class DB {
             }
         }
     }
-
     ```
 
-## 🗒 5. Board 모델 & DAO
+## 🗒 5. Board Model & DAO
+
+> **Model (데이터 객체)** = DB 테이블 1행(row)을 담는 클래스 = Board.java
 - `Board.java`
 
     ```java
@@ -224,6 +347,7 @@ public class DB {
     }
     ```
 
+> **DAO (Data Access Object)** = SQL 실행 / DB 연동 전담 = BoardDao.java
 - `BoardDao.java`
     ```java
     package localhost.myapp.dao;
@@ -236,24 +360,33 @@ public class DB {
     import java.util.ArrayList;
     import java.util.List;
 
+    /**
+    * 게시판 CRUD.
+    * - 목록 조회는 DESC 정렬 + LIMIT/OFFSET 로 간단 페이징 지원
+    */
     public class BoardDao {
         private final DataSource ds = DB.getDataSource();
 
-        public List<Board> findAll() throws SQLException {
-            String sql = "SELECT * FROM board ORDER BY idx DESC";
+        public List<Board> findAll(int page, int size) throws SQLException {
+            int limit = Math.max(1, Math.min(size, 100));
+            int offset = Math.max(0, (page - 1) * limit);
+            String sql = "SELECT idx, title, content, reg_date FROM board ORDER BY idx DESC LIMIT ? OFFSET ?";
             try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-                List<Board> list = new ArrayList<>();
-                while (rs.next()) {
-                    Board b = new Board();
-                    b.idx = rs.getInt("idx");
-                    b.title = rs.getString("title");
-                    b.content = rs.getString("content");
-                    b.regDate = rs.getString("reg_date");
-                    list.add(b);
+                PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, limit);
+                ps.setInt(2, offset);
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Board> list = new ArrayList<>();
+                    while (rs.next()) {
+                        Board b = new Board();
+                        b.idx = rs.getInt("idx");
+                        b.title = rs.getString("title");
+                        b.content = rs.getString("content");
+                        b.regDate = rs.getString("reg_date");
+                        list.add(b);
+                    }
+                    return list;
                 }
-                return list;
             }
         }
 
