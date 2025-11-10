@@ -248,9 +248,11 @@ Java Servlet 작동 방식을 알아보자.
     ```
 
 6. 스크립트 실행
-    ```bash
-    tomcat_deplay
-    ```
+    - `/var/www/jsp.servlet.localhost/WEB-INF` 경로에서
+    
+      ```bash
+      ./tomcat_deplay
+      ```
 
 
 ## 4. `VSCode` 에서 배포 스크립트 사용하기
@@ -343,37 +345,71 @@ Java Servlet 작동 방식을 알아보자.
   | `URIEncoding="UTF-8"`          | **URL(QueryString, GET 파라미터) 인코딩 방식 지정**              | ISO-8859-1 | **GET 요청에 한글 포함될 때 필수**                |
   | `useBodyEncodingForURI="true"` | `request.setCharacterEncoding()` 설정을 **URL 인코딩에도 적용** | false      | **POST + GET 모두 통일해서 UTF-8 처리하고 싶을 때** |
 
+## 6. Tomcat이 가장 권장하는 “표준적이고 안전한 방식” 으로 `<Context>` 설정하기 
+> Context 정의는 server.xml 안에 직접 넣지 말고, 별도 XML 파일(conf/Catalina/[Host]/[Context].xml)에 두는 것을 권장한다. 즉, **ROOT.xml 방식이 Tomcat이 가장 권장하는 “표준적이고 안전한 방식”** 입니다.
 
-## 6. Tomcat 재시작 시 세션 초기화 문제
-> Tomcat는 기본적으로 “메모리 세션” 이라서 프로세스를 재시작하면 세션이 사라집니다. 재시작 이후에도 유지하려면 세션을 파일에 저장하거나, 외부 저장소(예: Redis)로 세션을 빼야 합니다. 
+- ROOT.xml이 중요한 이유
 
-1. 톰캣의 파일 기반 세션 저장 켜기 - `/etc/tomcat10/server.xml` 파일을 열어서 아래 내용 수정
+  | 기능              | 설명                                                |
+  | --------------- | ------------------------------------------------- |
+  | **기본 웹앱 지정**    | `/` 경로(루트 URL)에 해당하는 애플리케이션을 설정                   |
+  | **배포 독립성**      | `server.xml` 수정 없이 앱을 추가/변경 가능                    |
+  | **JNDI 리소스 연결** | DB 커넥션풀, 메일 세션 등 자원을 선언                           |
+  | **세션 저장소 지정**   | `<Manager pathname="SESSIONS.ser" />` 등 세션 직렬화 설정 |
+  | **보안/리로드 설정**   | `<Context reloadable="true" />` 같은 개발 편의 옵션 지정 가능 |
 
-    - 기존 Context 태그
-      ```xml       
-      <Context path="" docBase="/var/www/<subdomain>.localhost" />
-      ```
 
-    - 수정된 Context 태그
-      ```xml       
-      <!-- 웹 애플리케이션 설정 -->   
-      <Context path="" docBase="/var/www/<subdomain>.localhost" reloadable="true">
-            <!-- path="" : URL 경로 (빈 값이면 docBase 파일위치 루트에서 접근) -->
-            <!-- docBase="" : 실제 웹 애플리케이션 파일 위치 -->
-            <!-- reloadable="true" : 클래스나 JAR 파일 변경 시 자동으로 애플리케이션 리로드 -->
+1. 디렉터리 권한 변경 ( 도메인이 다를경우 확인필요 )
 
-            <!-- 세션을 파일로 저장하도록 설정하는 부분 (StandardManager 기본값 사용)
-            - SESSIONS.ser 파일로 저장됨 
-            - Tomcat이 종료될 때 현재 세션 정보를 파일로 저장하고,
-            - 다시 시작하면 SESSIONS.ser 파일에서 세션을 복원합니다.
-            - kill -9 등 강제 종료 시 저장되지 않음 -->
-            <Manager pathname="SESSIONS.ser" />               
-      </Context>
-      ```
+    ```bash
+    chmod 755 /etc/tomcat10/Catalina/jsp.servlet.localhost
+    ```
 
-  2. 적용하기 위해 재시작
-      - `VSCode`에서 `Ctrl` + `Shift` + `B` ( 빌드 & 톰캣 재시작 )
+2. `cd` 로 해당 디렉터리로 이동
 
+    ```bash
+    cd /etc/tomcat10/Catalina/jsp.servlet.localhost
+    ```
+
+3. touch 로 `ROOT.xml` 파일 생성
+    ```bash
+    sudo touch ROOT.xml
+    ```
+
+
+4. `ROOT.xml` 파일 소유자 변경
+    ```bash
+    sudo chown ubuntu:tomcat ROOT.xml
+    ```
+
+5. `VSCode` 에서 `ROOT.xml` 열어서 아래 내용 입력 ( `/var/www/jsp.servlet.localhost` 작업 경로가 다르면 수정필요 )
+    > Tomcat는 기본적으로 “메모리 세션” 이라서 프로세스를 재시작하면 세션이 사라집니다. 재시작 이후에도 유지하려면 세션을 파일에 저장하거나, 외부 저장소(예: Redis)로 세션을 빼야 합니다.
+    ```xml
+    <!-- 웹 애플리케이션 설정 -->   
+    <Context path="" docBase="/var/www/jsp.servlet.localhost" reloadable="true">
+      <!-- path="" : URL 경로 (빈 값이면 docBase 파일위치 루트에서 접근) -->
+      <!-- docBase="" : 실제 웹 애플리케이션 파일 위치 -->
+      <!-- reloadable="true" : 클래스나 JAR 파일 변경 시 자동으로 애플리케이션 리로드 -->
+
+      <!-- 세션을 파일로 저장하도록 설정하는 부분 (StandardManager 기본값 사용)
+      - SESSIONS.ser 파일로 저장됨 
+      - Tomcat이 종료될 때 현재 세션 정보를 파일로 저장하고,
+      - 다시 시작하면 SESSIONS.ser 파일에서 세션을 복원합니다.
+      - kill -9 등 강제 종료 시 저장되지 않음 -->
+      <Manager pathname="SESSIONS.ser" />               
+    </Context>     
+    ```
+
+6. 기존의 `server.xml` 내용 아래처럼 변경 ( 도메인이 다를 경우 확인 )
+    ```xml
+    <Host name="jsp.servlet.localhost" appBase="" unpackWARs="false" autoDeploy="false"/>
+    ```
+
+7. 적용하기 위해 재시작
+
+    ```bash 
+    restart-tomcat
+    ```
 
 ## 🧩 실습 / 과제
 1. 예제 폴더에 있는 LifeCycleServlet.java 를 http://java.localhost/ex/life 화면에 출력하기.
