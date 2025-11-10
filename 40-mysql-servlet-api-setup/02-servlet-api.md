@@ -1,18 +1,21 @@
-# Servlet API + CRUD 구성하기
+# Servlet API 로 CRUD 구현하기
 
 ## 📘 학습 개요
 Servlet API 에서 CRUD 구현하기 with MySQL
 
-- API 테스트 및 개발용 도구 Insomnia [다운로드](https://insomnia.rest/download)
-
 ## 💡 주요 내용
-- 필요한 라이브러리 추가하기
 
-- JNDI DataSource 설정 
-- DB 연결 및 모델 & DAO 구현
-- Insomnia로 API 엔드포인트 테스트
+- MySQL 데이터베이스 연결 및 JNDI DataSource 설정
 
-## ⚙️ 0. 필요한 라이브러리 추가하기
+- DAO(Data Access Object) 패턴으로 데이터 처리 로직 분리
+
+- JSON 형식 요청/응답 처리 (Gson 사용)
+
+- CRUD (Create, Read, Update, Delete) 기능 API 구현
+
+- Insomnia 또는 curl을 활용한 API 테스트
+
+## ⚙️ 필요한 라이브러리 추가하기
 
 1. 디렉터리 이동 ( `jsp.servlet.localhost` 경로 다르면 확인 )
     ```bash
@@ -38,6 +41,15 @@ Servlet API 에서 CRUD 구현하기 with MySQL
     ```bash
     cp mysql-connector-j-9.5.0/mysql-connector-j-9.5.0.jar .
     ```
+## CRUD 란?
+
+| 구분    | 의미              | 설명                   | HTTP 메서드         |
+| ----- | --------------- | -------------------- | ---------------- |
+| **C** | **Create (생성)** | 새로운 데이터를 **추가**하는 기능 | `POST`           |
+| **R** | **Read (조회)**   | 저장된 데이터를 **읽어오는** 기능 | `GET`            |
+| **U** | **Update (수정)** | 기존 데이터를 **변경하는** 기능  | `PUT` 또는 `PATCH` |
+| **D** | **Delete (삭제)** | 데이터를 **지우는** 기능      | `DELETE`         |
+
 
 ## ⚙️ 1. JNDI DataSource 설정 
 
@@ -637,3 +649,5 @@ curl -X DELETE http://java.localhost/api/board/1
 
 ## 🧩 실습 / 과제
 - `CURL` 또는 `Insomnia` 로 API 활용해보기
+
+- API 테스트 및 개발용 도구 Insomnia [다운로드](https://insomnia.rest/download)

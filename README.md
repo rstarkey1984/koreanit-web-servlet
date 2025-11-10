@@ -1,7 +1,7 @@
-# 💻 한국IT교육원 웹 개발 강의 
+# 💻 한국IT교육원 웹 서버 프로그래밍 실습
 
-> **주제:** 웹서버 개발환경을 구축하고 JSP/Servlet 으로 웹사이트 동작 원리를 알아본다.  
-> **대상:** 한국IT교육원 웹 서버 프로그래밍 과정  
+> **주제:** JSP/Servlet 기반 웹 애플리케이션 개발 과정  
+> **대상:** 한국IT교육원 웹 서버 프로그래밍 과정 수강생     
 > **작성:** 류근철  
 
 ---
@@ -10,6 +10,7 @@
 
 ### 1️⃣ 웹 기초 
 1. [웹의 개념](10-web-basic/01-what-is-web.md)
+2. [브라우저에서 `www.google.com` 을 입력했을 때의 전체 흐름](10-web-basic/02-web-flow.md)
 
 ### 2️⃣ WSL을 이용해 Ubuntu 서버 개발환경 구축 
 1. [WSL로 리눅스 서버 개발환경 구축 ( WSL + Ubuntu + JDK ) ](20-ubuntu-web-server/01-wsl-setup.md)
@@ -26,21 +27,24 @@
 5. [JSP/Servlet을 같이 사용하는 방법 실습](30-java-examples/05-jsp-servlet-example.md)
 6. [Servlet Filter(필터) 와 Listener(리스너) 구현](30-java-examples/06-servlet-filter-listener.md)
 
-### 4️⃣ MySQL
-1. [MySQL 설치 및 설정](40-mysql-setup/01-mysql-setup.md)
-
-### 5️⃣ 전체적인 웹의 동작구조
-1. [브라우저에서 `www.google.com` 을 입력했을 때의 전체 흐름](00-web-structure/01-web-flow.md)
+### 4️⃣ Servlet + MySQL 연동으로 CRUD API 만들기
+1. [MySQL 설치 및 설정](40-mysql-servlet-api-setup/01-mysql-setup.md)
+2. [Servlet API 로 CRUD 구현하기](40-mysql-servlet-api-setup/02-servlet-api.md)
 
 
-## 🎯 학습 목표 
-- 웹의 개념에 대해 이해한다.
-- Ubuntu 환경에서 Nginx + Tomcat 기반 서버 개발환경을 구축한다.  
-- Java Servlet/JSP 를 이용해 동적 웹페이지를 작성한다.  
-- 개발환경 구축과 동적 웹페이지를 만들면서 웹의 통신 과정을 이해한다. 
+## 🎯 학습 목표
+- 웹의 기본 구조와 통신 원리를 이해한다.  
+- Ubuntu 환경에서 Nginx와 Tomcat을 이용해 웹 서버를 구성한다.  
+- Java Servlet/JSP를 이용하여 동적 웹페이지를 구현한다.  
+- MySQL과 연동하여 CRUD 기능을 갖춘 API를 개발한다.  
+- 개발환경 구축부터 서버 통신까지의 전체 흐름을 익힌다.  
 
 ---
-
 ## ⚙️ 준비물
-- Windows 11 또는 Windows 10 버전 1903 이상(빌드 18362 이상)
-- 버전확인: Windows 로고 키 + R을 눌러 '실행' 대화 상자에 `winver` 입력
+| 구분 | 내용 |
+|------|------|
+| 운영체제 | Windows 10 (빌드 1903 이상) 또는 Windows 11 |
+| 개발환경 | WSL2 + Ubuntu 24.04 LTS |
+| 필수 도구 | JDK 17 이상, Nginx, Tomcat 10, MySQL 8 |
+| 권장 에디터 | Visual Studio Code |
+| 테스트 도구 | Insomnia 또는 curl |
