@@ -402,7 +402,7 @@ Java Servlet 작동 방식을 알아보자.
 
 6. 기존의 `server.xml` 내용 아래처럼 변경 ( 도메인이 다를 경우 확인 )
     ```xml
-    <Host name="jsp.servlet.localhost" appBase="" unpackWARs="false" autoDeploy="false"/>
+    <Host name="jsp.servlet.localhost" appBase="webapps/jsp.servlet.localhost" unpackWARs="false" autoDeploy="false"/>
     ```
 
 7. 적용하기 위해 재시작
