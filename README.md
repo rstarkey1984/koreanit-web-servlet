@@ -27,9 +27,14 @@
 5. [JSP/Servlet을 같이 사용하는 방법 실습](30-java-examples/05-jsp-servlet-example.md)
 6. [Servlet Filter(필터) 와 Listener(리스너) 구현](30-java-examples/06-servlet-filter-listener.md)
 
-### 4️⃣ Servlet + MySQL 연동으로 CRUD API 만들기
-1. [MySQL 설치 및 설정](40-mysql-servlet-api-setup/01-mysql-setup.md)
-2. [Servlet API 로 CRUD 구현하기](40-mysql-servlet-api-setup/02-servlet-api.md)
+
+### 4️⃣ MVC 구조 이해 + Servlet 구현 ( With MySQL )
+1. [MySQL 설치 및 설정](40-mvc-project/01-mysql-setup.md)
+2. [MVC (Model-View-Controller 패턴 소개)](40-mvc-project/02-what-is-mvc.md)
+3. [MVC 구조 익히기 (Servlet + Service 구현)](40-mvc-project/03-servlet-mvc.md))
+4. [Servlet API 로 CRUD 구현하기](40-mvc-project/04-servlet-api.md)
+
+### Vue + API
 
 
 ## 🎯 학습 목표

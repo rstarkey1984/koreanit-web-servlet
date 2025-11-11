@@ -33,6 +33,8 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
 
       > dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
 
+      > wsl --set-default-version 2
+
       > wsl --install
       ```
 
@@ -302,6 +304,11 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
 - WSL2를 기본 버전으로 설정:
    ```Powershell
    > wsl --set-default-version 2
+   ```
+
+- 특정 배포판을 WSL2로 변환:
+   ```Powershell
+   > wsl --set-version Ubuntu-24.04 2
    ```
 
 - WSL 포트포워딩 확인:

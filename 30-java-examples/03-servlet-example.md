@@ -321,9 +321,6 @@ Java Servlet 작동 방식을 알아보자.
     log-tomcat
     ```
 
-
-# **note) ~/etc/ 경로에 nginx, tomcat 링크 폴더 생성하기**
-
 ## 5. Tomcat GET 요청 파라미터 한글 깨짐 문제 해결
 
 - Tomcat `server.xml`에서 `<Connector` ... `여기에 아래내용 추가` ... `/>`
@@ -405,7 +402,35 @@ Java Servlet 작동 방식을 알아보자.
 
 6. 기존의 `server.xml` 내용 아래처럼 변경 ( 도메인이 다를 경우 확인 )
     ```xml
-    <Host name="jsp.servlet.localhost" appBase="webapps/jsp.servlet.localhost" unpackWARs="false" autoDeploy="false" />
+    <!-- jsp.servlet.localhost 가상호스트 설정 -->
+    <Host name="jsp.servlet.localhost" appBase="webapps/jsp.servlet.localhost" unpackWARs="false" autoDeploy="false">
+
+        <!-- ===========================================================
+        RemoteIpValve 설정 (리버스 프록시 뒤에서 외부 요청 정보 복원)
+
+        ✔ 목적:
+        - Nginx 등 프록시 서버가 전달한 X-Forwarded-* 헤더를 해석하여
+        request.getScheme(), getServerName(), getServerPort() 값을
+        외부 기준(클라이언트가 접속한 도메인/프로토콜/포트)으로 바꿔줍니다.
+        - sendRedirect(), request.getRequestURL() 등이 내부 주소(예: localhost:8081)
+        대신 외부 주소(예: https://java.localhost)로 정상 작동하게 됩니다.
+
+        ✔ 주요 속성:
+        - internalProxies : 신뢰할 수 있는 내부 프록시 IP 범위 (정규식)
+        → 개발 환경: ".*" (모두 허용)
+        → 운영 환경: "127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+" 등 제한 권장
+        - protocolHeader : 클라이언트 실제 스킴 (예: X-Forwarded-Proto: http/https)
+        - portHeader     : 클라이언트 실제 포트 (예: X-Forwarded-Port: 80/443)
+        - hostHeader     : 클라이언트 실제 호스트 (예: X-Forwarded-Host: java.localhost)
+        =========================================================== -->
+
+        <Valve className="org.apache.catalina.valves.RemoteIpValve"
+            internalProxies=".*"
+            protocolHeader="X-Forwarded-Proto"
+            portHeader="X-Forwarded-Port"
+            hostHeader="X-Forwarded-Host" />
+
+    </Host>          
     ```
 
 7. 적용하기 위해 재시작

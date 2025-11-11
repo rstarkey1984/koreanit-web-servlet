@@ -362,11 +362,21 @@
 
         charset utf-8;                 # 응답에 기본 문자 인코딩을 UTF-8로 설정 (Content-Type 기반)
 
-        location / {                # / 로 시작하는 모든 요청을 처리하는 블록
+        location / {                # /api로 시작하는 모든 요청을 처리하는 블록
 
             proxy_pass http://127.0.0.1:8081/;  # 요청을 내부의 Tomcat 또는 다른 서버(127.0.0.1:8081)로 전달
 
-            proxy_set_header Host <톰캣서브도메인>.localhost; # 백엔드 서버에 전달할 Host 헤더를 강제로 변경 (도메인 기반 처리가 필요할 때 사용)
+            # 업스트림 호스트 선택용 (Tomcat 가상호스트 매칭)
+            proxy_set_header Host jsp.servlet.localhost;
+
+            # 리다이렉트/링크용
+            proxy_set_header X-Forwarded-Host $host;        # java.localhost
+            proxy_set_header X-Forwarded-Proto $scheme;     # http 또는 https
+            proxy_set_header X-Forwarded-Port $server_port; # 80 또는 443
+            
+            # 클라이언트 실제 아이피를 톰캣이 받을수 있음
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
         }
     }
