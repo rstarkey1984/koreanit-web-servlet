@@ -93,7 +93,36 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             public int idx;
             public String title;
             public String content;
-            public String regDate;
+            public String reg_date;
+        
+            // getter/setter
+            public int getIdx() {
+                return idx;
+            }
+            public void setIdx(int idx) {
+                this.idx = idx;
+            }
+        
+            public String getTitle() {
+                return title;
+            }
+            public void setTitle(String title) {
+                this.title = title;
+            }
+        
+            public String getContent() {
+                return content;
+            }
+            public void setContent(String content) {
+                this.content = content;
+            }
+        
+            public String getReg_date() {
+                return reg_date;
+            }
+            public void setReg_date(String reg_date) {
+                this.reg_date = reg_date;
+            }
         }
         ```
 
