@@ -37,7 +37,7 @@ Servlet API 에서 CRUD 구현하기 with MySQL
 | **D** | **Delete (삭제)** | 데이터를 **지우는** 기능      | `DELETE`         | `DELETE` |
 
 
-## 🌐 6. UserAPI (회원가입/로그인)
+## 🌐 1. UserAPI (회원가입/로그인)
 - `UserAPI.java`
 
     ```java
@@ -151,7 +151,7 @@ Servlet API 에서 CRUD 구현하기 with MySQL
     }
     ```
 
-## 🧾 7. BoardAPI (게시글 CRUD)
+## 🧾 2. BoardAPI (게시글 CRUD)
 - `BoardAPI.java`
 
     ```java
@@ -318,7 +318,7 @@ Servlet API 에서 CRUD 구현하기 with MySQL
     }
     ```
 
-## 📡 8. Servlet API + CRUD 엔드포인트 요약
+## 📡 3. Servlet API + CRUD 엔드포인트 요약
 
 | 구분     | 기능        | HTTP 메서드 | URL                         | 요청 Body(JSON)                                          | 비고                                |
 | ------ | --------- | -------- | --------------------------- | ------------------------------------------------------ | --------------------------------- |
@@ -331,7 +331,7 @@ Servlet API 에서 CRUD 구현하기 with MySQL
 | 📰 게시판 | 게시글 삭제    | `DELETE` | `/api/board/{idx}`          | -                                                      | 지정된 `idx` 게시글 삭제                  |
 
 
-## 💬 9. 요청 예시 ( CURL 테스트용 )
+## 💬 4. 요청 예시 ( CURL 테스트용 )
 
 ### 🧩 User API (회원 관련)
 
