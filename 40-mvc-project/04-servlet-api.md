@@ -409,4 +409,65 @@ curl -X DELETE http://java.localhost/api/board/1
 ## 🧩 실습 / 과제
 - `CURL` 또는 `Insomnia` 로 API 활용해보기
 
-- API 테스트 및 개발용 도구 Insomnia [다운로드](https://insomnia.rest/download)
+- API 테스트 및 개발용 확장 프로그램 [다운로드](https://marketplace.visualstudio.com/items?itemName=humao.rest-client)
+
+
+
+- `api-test.http`
+    ```
+    @host = http://127.0.0.1
+    @hostname = java.localhost
+
+    ### 회원가입
+    POST {{host}}/api/user/register
+    Host: {{hostname}}
+    Content-Type: application/json
+
+    {
+    "id": "kim4",
+    "password": "1234",
+    "email": "a@b.com"
+    }
+
+    ### 로그인
+    POST {{host}}/api/user/login
+    Host: {{hostname}}
+    Content-Type: application/json
+
+    {
+    "id": "kim4",
+    "password": "1234"
+    }
+
+    ### 게시판 목록 조회
+    GET {{host}}/api/board?page=1&size=10
+    Host: {{hostname}}
+
+    ### 게시판 상세 조회
+    GET {{host}}/api/board/1
+    Host: {{hostname}}
+
+    ### 게시판 글 작성
+    POST {{host}}/api/board
+    Host: {{hostname}}
+    Content-Type: application/json
+
+    {
+    "title": "첫 번째 글",
+    "content": "게시판 내용입니다."
+    }
+
+    ### 게시판 글 수정
+    PUT {{host}}/api/board/1
+    Host: {{hostname}}
+    Content-Type: application/json
+
+    {
+    "title": "수정된 제목",
+    "content": "수정된 내용입니다."
+    }
+
+    ### 게시판 글 삭제
+    DELETE {{host}}/api/board/1
+    Host: {{hostname}}
+    ```
