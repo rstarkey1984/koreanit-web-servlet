@@ -676,22 +676,38 @@ public class RequestLogFilter implements Filter {   // Filter 인터페이스 �
 
         ```
 
-    4. `PreparedStatement`
+        - `PreparedStatement`
 
-        > 미리 컴파일된 SQL + 바인딩만 하는 안전하고 빠른 SQL 실행 도구. 
+            > 미리 컴파일된 SQL + 바인딩만 하는 안전하고 빠른 SQL 실행 도구. 
 
-        | 메서드               | 용도                               |
-        | ----------------- | -------------------------------- |
-        | `setXXX()` 계열 메서드  | 값 바인딩 ( setString, setInt, setTimestamp, setObject )                           |
-        | `executeQuery()`  | SELECT                           |
-        | `executeUpdate()` | INSERT / UPDATE / DELETE         |
+            | 메서드               | 용도                               |
+            | ----------------- | -------------------------------- |
+            | `setXXX()` 계열 메서드  | 값 바인딩 ( setString, setInt, setTimestamp, setObject )                           |
+            | `executeQuery()`  | SELECT                           |
+            | `executeUpdate()` | INSERT / UPDATE / DELETE         |
             
-        - SQL Injection 방지 ( setXXX() 계열 메서드 )
+            - SQL Injection 방지 ( setXXX() 계열 메서드 )
 
-            > ? 에 값만 넣기 때문에 "kim"; DROP TABLE user; --" 같은 공격도 문자열로 취급됨
-            
+                > ? 에 값만 넣기 때문에 "kim"; DROP TABLE user; --" 같은 공격도 문자열로 취급됨
+        
+        - `try-with-resources` 패턴 사용
+            ```java
+                try (
+                    Connection con = ds.getConnection();
+                    PreparedStatement ps = con.prepareStatement(sql)
+                ) {
+                    ...
+                }
+            ```
+            - try() 안에 선언한 객체는 자동으로 close() 호출됨
 
-    5. `/ex/dao.java` - Dao 코드 테스트
+            - 정상/예외 관계없이 무조건 close() 호출됨
+
+            - try 안에서 사용 안하면 무조건 close() 해줘야 함 ( 옛날방식 )
+
+            - close() 안하면 서버장애 발생
+
+    4. `/ex/dao.java` - Dao 코드 테스트
         ```java
         @WebServlet("/ex/dao")
         public class dao extends HttpServlet {
