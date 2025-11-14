@@ -46,9 +46,118 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
     sudo cp mysql-connector-j-9.5.0/mysql-connector-j-9.5.0.jar /usr/share/tomcat10/lib/
     ```
 
+## ⚙️ 요청 파라미터 로그에서 확인
+
+
+`RequestLogFilter.java`
+```java
+package localhost.myapp.filter;            // 필터 클래스가 속한 패키지 선언
+
+import jakarta.servlet.*;                  // Filter, FilterChain, ServletRequest 등 기본 서블릿 인터페이스
+import jakarta.servlet.annotation.WebFilter; // @WebFilter 어노테이션 사용을 위한 import
+import jakarta.servlet.http.*;             // HttpServletRequest, Cookie 클래스 사용
+import java.io.IOException;                // IOException 예외
+import java.util.*;                        // Enumeration, Arrays 등 유틸 클래스
+
+@WebFilter("/*")                           // 모든 요청 URL( /* )에 대해 이 필터가 실행되도록 설정
+public class RequestLogFilter implements Filter {   // Filter 인터페이스 구현 클래스 정의 시작
+
+    @Override
+    public void init(FilterConfig filterConfig) {   // 필터 초기화 시 실행되는 메서드
+        // 초기화할 내용이 없어서 비워둠
+    }
+
+    @Override
+    public void doFilter(ServletRequest request,    // 클라이언트 요청 객체 (HttpServletRequest의 부모 타입)
+                         ServletResponse response,   // 클라이언트 응답 객체 (HttpServletResponse의 부모 타입)
+                         FilterChain chain)          // 다음 필터 또는 서블릿으로 넘기는 체인 객체
+            throws IOException, ServletException {
+
+        HttpServletRequest req = (HttpServletRequest) request; // ServletRequest를 HttpServletRequest로 다운캐스팅
+
+        System.out.println("\n========== REQUEST DEBUG =========="); // 요청 디버그 로그 시작 출력
+        System.out.println("URI: " + req.getRequestURI());     // 요청된 URI 출력
+        System.out.println("Method: " + req.getMethod());       // 요청 메서드(GET/POST 등) 출력
+
+        // -------------------- Parameters 출력 --------------------
+        System.out.println("\n[Parameters]");                  // 파라미터 섹션 제목 출력
+        req.getParameterMap().forEach(                         // request.getParameterMap() → 모든 파라미터(key/value) 조회
+                (k, v) -> System.out.println("  " + k + " = " + Arrays.toString(v)) // k: 이름, v: 값 배열 형태 출력
+        );
+
+        // -------------------- Headers 출력 --------------------
+        System.out.println("\n[Headers]");                     // 헤더 섹션 제목 출력
+        Enumeration<String> headerNames = req.getHeaderNames(); // 모든 헤더 이름을 가져오는 Enumeration 객체
+        while (headerNames.hasMoreElements()) {                 // 헤더가 더 있을 때까지 반복
+            String name = headerNames.nextElement();            // 헤더 이름 하나 가져오기
+            System.out.println("  " + name + ": " + req.getHeader(name)); // 헤더 이름과 값을 출력
+        }
+
+        // -------------------- Cookies 출력 --------------------
+        System.out.println("\n[Cookies]");                     // 쿠키 섹션 제목 출력
+        Cookie[] cookies = req.getCookies();                   // 요청에 포함된 모든 쿠키 가져오기
+        if (cookies != null) {                                 // 쿠키가 존재할 경우
+            for (Cookie c : cookies) {                         // 모든 쿠키 반복
+                System.out.println("  " + c.getName() + ": " + c.getValue()); // 쿠키 이름 = 값 출력
+            }
+        } else {                                               // 쿠키가 없을 경우
+            System.out.println("  (no cookies)");              // "쿠키 없음" 출력
+        }
+
+        System.out.println("===================================\n"); // 로그 구분선 출력
+
+        // -------------------- 필터 체인 계속 진행 --------------------
+        chain.doFilter(request, response); // 다음 필터 또는 최종 서블릿으로 요청/응답 전달
+    }
+
+    @Override
+    public void destroy() {               // 필터 종료 시 실행(리소스 정리용)
+        // 정리할 내용이 없어서 비워둠
+    }
+}
+```
+
+## ⚙️ Code Formatter 설치 및 `.jsp` 파일 설정
+
+- [Prettier - Code formatter 설치하기](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+
+- `settings.json` - `VSCode` 설정파일
+    ```json
+    {
+        // Java 프로젝트에서 소스 코드가 위치한 경로
+        "java.project.sourcePaths": ["WEB-INF/src"],
+
+        // 프로젝트에서 사용할 라이브러리(JAR) 경로들
+        "java.project.referencedLibraries": [
+            "WEB-INF/lib/*.jar", // WEB-INF/lib 안의 모든 JAR 포함
+            "/usr/share/tomcat10/lib/servlet-api.jar" // Tomcat 제공 servlet-api
+        ],
+
+        // Java 컴파일 결과(.class 파일) 출력 폴더
+        "java.project.outputPath": "WEB-INF/classes",
+
+        // VS Code가 *.jsp 파일을 HTML 파일처럼 인식하도록 설정
+        "files.associations": {
+            "*.jsp": "html"
+        },
+
+        // JSP 파일 저장 시 Prettier로 자동 포매팅
+        "[jsp]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode", // Prettier 사용
+            "editor.formatOnSave": true // 저장 시 자동 정렬
+        },
+
+        // HTML 파일에도 Prettier 자동 포매팅 적용
+        "[html]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+            "editor.formatOnSave": true
+        }
+    }
+    ```
+
 ## 1. 라우팅 표 만들기
 
-- 어떤 URL이 어떤 동작을 할지 표로 먼저 확정
+- 어떤 URL이 어떤 동작을 할지 표로 먼저 확정 ( 예시: )
 
     | Method | Path           | 기능     | 뷰/응답           |
     | -----: | -------------- | ------ | -------------- |
@@ -69,230 +178,577 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
     - 테이블/컬럼/제약/인덱스/기본 데이터(Seed)
 
-2. DTO ( Data Transfer Object )
+2. `DTO` ( Data Transfer Object )
 
     - `User.java` - user 테이블 row(행)
 
         ```java
         package localhost.myapp.user;
 
+        /**
+        * User 엔티티(모델) 클래스
+        * - JavaBean 규칙 준수 (private 필드 + getter/setter)
+        * - JSP/EL에서 ${user.id} 형태로 접근 가능 (getId() 호출)
+        * - DB 조회/삽입 시 DAO에서 값을 채워 넣는 용도
+        */
         public class User {
+
+            /** 고유 번호 (Primary Key) */
             public int idx;
+
+            /** 사용자 아이디 */
             public String id;
+
+            /** 비밀번호 (해싱된 값이 들어감) */
             public String password;
+
+            /** 이메일 */
             public String email;
+
+            /** 회원 가입 날짜 (문자열로 저장: yyyy-MM-dd HH:mm:ss 등) */
             public String regDate;
+
+
+            /** 기본 생성자 (JavaBean 규약) */
+            public User() {}
+
+            // ---------- Getter / Setter ----------
+
+            /** idx 반환 (JSP에서 ${user.idx} → getIdx() 호출) */
+            public int getIdx() {
+                return idx;
+            }
+
+            /** idx 설정 (DAO에서 rs.getInt("idx") 값 저장 시 사용) */
+            public void setIdx(int idx) {
+                this.idx = idx;
+            }
+
+            /** id 반환 */
+            public String getId() {
+                return id;
+            }
+
+            /** id 설정 */
+            public void setId(String id) {
+                this.id = id;
+            }
+
+            /** password 반환 */
+            public String getPassword() {
+                return password;
+            }
+
+            /** password 설정 */
+            public void setPassword(String password) {
+                this.password = password;
+            }
+
+            /** email 반환 */
+            public String getEmail() {
+                return email;
+            }
+
+            /** email 설정 */
+            public void setEmail(String email) {
+                this.email = email;
+            }
+
+            /** regDate 반환 */
+            public String getRegDate() {
+                return regDate;
+            }
+
+            /** regDate 설정 */
+            public void setRegDate(String regDate) {
+                this.regDate = regDate;
+            }
         }
         ```
 
     - `Board.java` - board 테이블 row(행)
         ```java
-        package localhost.myapp.board;
+        package localhost.myapp.board;  // 이 클래스가 속한 패키지 지정 (폴더 구조와 매칭됨)
 
+        /**
+        * Board DTO(데이터 전달 객체)
+        * - DB의 board 테이블 한 행(row)을 그대로 담는 역할
+        * - JavaBean 규약(필드는 private, getter/setter 제공)을 따름
+        * - JSP의 EL(${board.title})에서 getter를 자동으로 호출하여 값을 읽을 수 있음
+        */
         public class Board {
-            public int idx;
-            public String title;
-            public String content;
-            public String reg_date;
-        
-            // getter/setter
+
+            /** 게시글 번호 (Primary Key, DB의 idx에 해당) */
+            private int idx;
+
+            /** 게시글 제목 */
+            private String title;
+
+            /** 게시글 내용 */
+            private String content;
+
+            /** 게시글 등록일 (문자열 형태로 저장: yyyy-MM-dd HH:mm:ss 등) */
+            private String regDate;
+
+
+            // ---------------------- Getter / Setter ----------------------
+
+            /**
+            * 게시글 번호(idx) 읽기
+            * JSP에서 ${board.idx} 라고 쓰면 내부적으로 getIdx()가 자동 호출됨
+            */
             public int getIdx() {
                 return idx;
             }
+
+            /**
+            * 게시글 번호(idx) 설정
+            * DAO에서 DB 조회 시 rs.getInt("idx") 값을 넣어주는 용도로 사용
+            */
             public void setIdx(int idx) {
                 this.idx = idx;
             }
-        
+
+            /**
+            * 게시글 제목(title) 읽기
+            */
             public String getTitle() {
                 return title;
             }
+
+            /**
+            * 게시글 제목(title) 설정
+            */
             public void setTitle(String title) {
                 this.title = title;
             }
-        
+
+            /**
+            * 게시글 내용(content) 읽기
+            */
             public String getContent() {
                 return content;
             }
+
+            /**
+            * 게시글 내용(content) 설정
+            */
             public void setContent(String content) {
                 this.content = content;
             }
-        
-            public String getReg_date() {
-                return reg_date;
+
+            /**
+            * 게시글 작성일(regDate) 읽기
+            */
+            public String getRegDate() {
+                return regDate;
             }
-            public void setReg_date(String reg_date) {
-                this.reg_date = reg_date;
+
+            /**
+            * 게시글 작성일(regDate) 설정
+            */
+            public void setRegDate(String regDate) {
+                this.regDate = regDate;
             }
         }
+
         ```
 
-3. DAO ( Data Access Object ) 
+        - `JSTL` + `EL`에서 사용하기 위해 `DTO` 클래스에서 `Getter`/`Setter`가 필요한 이유는 `JavaBean` 규칙 을 따르기 때문.
+
+           1. `JavaBean` 규칙이란?
+
+                > `Java`에서 `JSP`·`EL`·프레임워크들이 객체와 데이터를 쉽게 주고받기 위해 정한 표준 규칙.
+
+                > 즉, `${user.id}`라고 적으면 `user.getId()` 메서드를 호출해서 값을 읽는다.
+
+                | EL 표현           | 실제 호출되는 메서드       |
+                | --------------- | ----------------- |
+                | `${user.id}`    | `user.getId()`    |
+                | `${user.email}` | `user.getEmail()` |
+                | `${user.age}`   | `user.getAge()`   |
+
+
+                - 예외: 첫 2글자가 모두 대문자인 경우 → 그대로 유지
+
+                    | EL 표현           | 실제 호출되는 메서드       |
+                    | --------------- | ----------------- |
+                    | `${object.URL}`    | `object.getURL()`    |
+                    | `${object.HTMLText}` | `object.getHTMLText()` |
+                    | `${object.UUID}`   | `object.getUUID()`   |
+
+
+
+3. `DAO` ( Data Access Object ) 
 
     - `UserDao.java` - user 테이블 관련 SQL문을 실행하고 결과를 반환.
 
         ```java
-        package localhost.myapp.user;
+        package localhost.myapp.user;                         // UserDao 클래스가 속한 패키지 선언
 
-        import localhost.myapp.common.DB;
+        import localhost.myapp.common.DB;                     // DB 커넥션 풀(DataSource) 제공 클래스 import
 
-        import javax.sql.DataSource;
-        import java.sql.*;
+        import javax.sql.DataSource;                          // DataSource 인터페이스
+        import java.sql.*;                                     // JDBC 관련 클래스들 import
 
+        /**
+        * UserDao: user 테이블에 대한 CRUD 중 일부 기능을 담당하는 DAO 클래스
+        * - 회원가입(insert)
+        * - 아이디로 회원 조회(findById)
+        * - 아이디 존재 여부 확인(existsById)
+        * - 로그인 검증(login)
+        */
         public class UserDao {
-            private final DataSource ds = DB.getDataSource();
 
+            private final DataSource ds = DB.getDataSource(); // DB.getDataSource()로 커넥션 풀 객체 생성
+
+            /**
+            * 회원가입 (INSERT)
+            * 비밀번호는 DB에서 sha2(?, 256)으로 단방향 해싱하여 저장
+            */
             public boolean insert(User u) throws SQLException {
+
+                // password는 sha2(?,256)으로 서버가 아닌 MySQL에서 해싱 처리함
                 String sql = "INSERT INTO user (id, password, email) VALUES (?, sha2(?, 256), ?)";
-                try (Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setString(1, u.id);
-                    ps.setString(2, u.password);
-                    ps.setString(3, u.email);
-                    return ps.executeUpdate() == 1;
+
+                try (Connection con = ds.getConnection();      // 커넥션 풀에서 Connection 가져오기
+                    PreparedStatement ps = con.prepareStatement(sql)) { // 쿼리 준비
+
+                    ps.setString(1, u.id);                    // 첫 번째 ? = 사용자 ID
+                    ps.setString(2, u.password);              // 두 번째 ? = 평문 password → MySQL sha2()로 해싱됨
+                    ps.setString(3, u.email);                 // 세 번째 ? = email
+
+                    return ps.executeUpdate() == 1;           // INSERT 실행 → 영향받은 행이 1이면 성공
                 }
             }
 
+            /**
+            * 아이디로 사용자 한 명 조회
+            * 회원정보 보여주기/로그인 전 아이디 확인 등에서 사용
+            */
             public User findById(String id) throws SQLException {
-                String sql = "SELECT * FROM user WHERE id=?";
-                try (Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setString(1, id);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            User u = new User();
-                            u.idx = rs.getInt("idx");
-                            u.id = rs.getString("id");
-                            u.email = rs.getString("email");
-                            u.regDate = rs.getString("reg_date");
-                            return u;
+
+                String sql = "SELECT * FROM user WHERE id=?";  // 특정 id로 조회하는 SQL
+
+                try (Connection con = ds.getConnection();      // 커넥션 가져오기
+                    PreparedStatement ps = con.prepareStatement(sql)) { // 쿼리 준비
+
+                    ps.setString(1, id);                      // 첫 번째 ? = 검색할 사용자 ID
+
+                    try (ResultSet rs = ps.executeQuery()) {  // SELECT 실행 후 결과를 ResultSet으로 받음
+
+                        if (rs.next()) {                     // 조회 결과가 있을 경우
+
+                            User u = new User();             // User DTO 객체 생성
+
+                            u.idx = rs.getInt("idx");        // idx 컬럼 값 저장
+                            u.id = rs.getString("id");       // id 저장
+                            u.email = rs.getString("email"); // email 저장
+                            u.regDate = rs.getString("reg_date"); // 가입일 저장
+
+                            return u;                        // 완성된 User 객체 반환
                         }
-                        return null;
+
+                        return null;                         // 조회 결과 없음 → null 반환
                     }
                 }
             }
 
+            /**
+            * 특정 ID가 존재하는지 확인 (회원가입 중복 체크에 사용)
+            * idx만 가져오므로 빠르고 가볍다.
+            */
             public User existsById(String id) throws SQLException {
-                String sql = "SELECT idx FROM user WHERE id=?";
-                try (Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setString(1, id);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            User u = new User();
-                            u.idx = rs.getInt("idx");
-                            return u;
+
+                String sql = "SELECT idx FROM user WHERE id=?"; // 존재 여부 조회 → idx만 SELECT
+
+                try (Connection con = ds.getConnection();        // 커넥션 가져오기
+                    PreparedStatement ps = con.prepareStatement(sql)) { // 쿼리 준비
+
+                    ps.setString(1, id);                        // 첫 번째 ? = 아이디
+
+                    try (ResultSet rs = ps.executeQuery()) {    // SELECT 실행
+
+                        if (rs.next()) {                        // 결과 존재 시
+
+                            User u = new User();                // User 객체 생성
+                            u.idx = rs.getInt("idx");           // idx만 저장하여 빠르게 체크
+
+                            return u;                           // 존재하면 User 반환
                         }
-                        return null;
+
+                        return null;                            // 존재하지 않으면 null
                     }
                 }
             }
 
+            /**
+            * 로그인 (ID + PASSWORD 일치 여부 확인)
+            * 비밀번호는 SQL에서 sha2(?, 256)을 사용해 비교
+            */
             public boolean login(String id, String password) throws SQLException {
+
+                // 입력된 패스워드를 sha2(?,256)으로 해싱해서 DB에 저장된 값과 비교
                 String sql = "SELECT COUNT(*) FROM user WHERE id=? AND password=sha2(?, 256)";
-                try (Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setString(1, id);
-                    ps.setString(2, password);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        rs.next();
-                        return rs.getInt(1) == 1;
+
+                try (Connection con = ds.getConnection();        // 커넥션 가져오기
+                    PreparedStatement ps = con.prepareStatement(sql)) { // SQL 준비
+
+                    ps.setString(1, id);                         // 첫 번째 ? = ID
+                    ps.setString(2, password);                   // 두 번째 ? = 평문 password (SQL에서 해싱됨)
+
+                    try (ResultSet rs = ps.executeQuery()) {     // SELECT 실행 → COUNT(*) 결과
+
+                        rs.next();                               // COUNT(*)는 무조건 한 행이므로 next() 한 번 호출
+                        return rs.getInt(1) == 1;                // 결과가 1이면 로그인 성공, 0이면 실패
                     }
                 }
             }
         }
+
         ```
 
     - `BoardDao.java` - board 테이블 관련 SQL문을 실행하고 결과를 반환.
         ```java
-        package localhost.myapp.board;
+        package localhost.myapp.board; // 현재 클래스가 속한 패키지
 
-        import localhost.myapp.common.DB;
+        import localhost.myapp.common.DB; // DB 커넥션 풀(DataSource)을 제공하는 DB 유틸 클래스
 
-        import javax.sql.DataSource;
-        import java.sql.*;
-        import java.util.ArrayList;
-        import java.util.List;
+        import javax.sql.DataSource; // DataSource 인터페이스 (커넥션 풀)
+        import java.sql.*; // JDBC 관련 클래스 (Connection, PreparedStatement 등)
+        import java.util.ArrayList; // ArrayList 사용
+        import java.util.List; // List 인터페이스
 
         /**
-        * 게시판 CRUD.
-        * - 목록 조회는 DESC 정렬 + LIMIT/OFFSET 로 간단 페이징 지원
+        * 게시판 CRUD 전용 DAO 클래스
+        * DAO(Data Access Object)는 DB 처리 로직만 담당한다.
+        * Controller/Service는 DB 코드를 직접 작성하지 않고 DAO에게 맡긴다.
         */
         public class BoardDao {
-            private final DataSource ds = DB.getDataSource();
 
+            private final DataSource ds = DB.getDataSource(); // DB.getDataSource()로 커넥션 풀 객체 생성
+
+            /**
+            * 게시글 목록 조회 (페이징)
+            * page(1부터 시작), size(한 페이지의 개수)
+            */
             public List<Board> findAll(int page, int size) throws SQLException {
-                int limit = Math.max(1, Math.min(size, 100));
-                int offset = Math.max(0, (page - 1) * limit);
-                String sql = "SELECT idx, title, content, reg_date FROM board ORDER BY idx DESC LIMIT ? OFFSET ?";
-                try (Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setInt(1, limit);
-                    ps.setInt(2, offset);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        List<Board> list = new ArrayList<>();
-                        while (rs.next()) {
-                            Board b = new Board();
-                            b.idx = rs.getInt("idx");
-                            b.title = rs.getString("title");
-                            b.content = rs.getString("content");
-                            b.regDate = rs.getString("reg_date");
-                            list.add(b);
+
+                int limit = Math.max(1, Math.min(size, 100)); // size는 최소 1, 최대 100으로 제한
+                int offset = Math.max(0, (page - 1) * limit); // OFFSET 계산 (page=1이면 offset=0)
+
+                // DESC 정렬로 최신 글 먼저 → LIMIT/OFFSET으로 페이징
+                String sql = "SELECT idx, title, content, reg_date " +
+                        "FROM board " +
+                        "ORDER BY idx DESC " +
+                        "LIMIT ? OFFSET ?";
+
+                try (Connection con = ds.getConnection(); // 커넥션 풀에서 Connection 하나 가져오기
+                        PreparedStatement ps = con.prepareStatement(sql)) { // SQL을 준비하는 PreparedStatement 생성
+
+                    ps.setInt(1, limit); // 첫 번째 ? = LIMIT
+                    ps.setInt(2, offset); // 두 번째 ? = OFFSET
+
+                    try (ResultSet rs = ps.executeQuery()) { // SELECT 실행 → 결과 ResultSet 반환
+
+                        List<Board> list = new ArrayList<>(); // 결과 목록을 담을 리스트
+
+                        while (rs.next()) { // 결과행이 있을 때까지 반복
+
+                            Board b = new Board(); // Board 객체 생성
+
+                            b.idx = rs.getInt("idx"); // DB의 idx 컬럼 값을 Board.idx 필드에 저장
+                            b.title = rs.getString("title"); // DB title → Board.title
+                            b.content = rs.getString("content"); // DB content → Board.content
+                            b.regDate = rs.getString("reg_date");// DB reg_date → Board.regDate
+
+                            list.add(b); // 리스트에 객체 추가
                         }
-                        return list;
+
+                        return list; // 최종 목록 반환
                     }
                 }
             }
 
+            /**
+            * 한 개의 게시글 상세 조회
+            * idx(PK)를 기준으로 조회
+            */
             public Board findById(int idx) throws SQLException {
-                String sql = "SELECT * FROM board WHERE idx=?";
-                try (Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setInt(1, idx);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            Board b = new Board();
-                            b.idx = rs.getInt("idx");
-                            b.title = rs.getString("title");
-                            b.content = rs.getString("content");
-                            b.regDate = rs.getString("reg_date");
-                            return b;
+
+                String sql = "SELECT * FROM board WHERE idx=?"; // PK 조건 조회
+
+                try (Connection con = ds.getConnection(); // 커넥션 얻기
+                        PreparedStatement ps = con.prepareStatement(sql)) { // SQL 준비
+
+                    ps.setInt(1, idx); // 첫 번째 ?에 idx 바인딩
+
+                    try (ResultSet rs = ps.executeQuery()) { // SELECT 실행 → ResultSet 반환
+
+                        if (rs.next()) { // 결과가 존재하면
+
+                            Board b = new Board(); // Board 객체 생성
+
+                            b.idx = rs.getInt("idx"); // idx 컬럼 가져와 저장
+                            b.title = rs.getString("title"); // title 저장
+                            b.content = rs.getString("content"); // content 저장
+                            b.regDate = rs.getString("reg_date");// reg_date 저장
+
+                            return b; // 객체 반환
                         }
-                        return null;
+
+                        return null; // 결과가 없을 경우 null 반환
                     }
                 }
             }
 
+            /**
+            * 게시글 등록
+            */
             public boolean insert(Board b) throws SQLException {
-                String sql = "INSERT INTO board (title, content) VALUES (?, ?)";
-                try (Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setString(1, b.title);
-                    ps.setString(2, b.content);
-                    return ps.executeUpdate() == 1;
+
+                String sql = "INSERT INTO board (title, content) VALUES (?, ?)"; // INSERT SQL
+
+                try (Connection con = ds.getConnection(); // 커넥션 얻기
+                        PreparedStatement ps = con.prepareStatement(sql)) { // SQL 준비
+
+                    ps.setString(1, b.title); // 첫 번째 ? = title
+                    ps.setString(2, b.content); // 두 번째 ? = content
+
+                    return ps.executeUpdate() == 1; // INSERT 실행 → 1행 영향을 받으면 true
                 }
             }
 
+            /**
+            * 게시글 수정
+            */
             public boolean update(Board b) throws SQLException {
-                String sql = "UPDATE board SET title=?, content=? WHERE idx=?";
-                try (Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setString(1, b.title);
-                    ps.setString(2, b.content);
-                    ps.setInt(3, b.idx);
-                    return ps.executeUpdate() == 1;
+
+                String sql = "UPDATE board SET title=?, content=? WHERE idx=?"; // UPDATE SQL
+
+                try (Connection con = ds.getConnection(); // 커넥션 얻기
+                        PreparedStatement ps = con.prepareStatement(sql)) { // SQL 준비
+
+                    ps.setString(1, b.title); // 1번 파라미터 = 새 title
+                    ps.setString(2, b.content); // 2번 파라미터 = 새 content
+                    ps.setInt(3, b.idx); // 3번 파라미터 = 조건 idx
+
+                    return ps.executeUpdate() == 1; // 1행이 변경되면 true
                 }
             }
 
+            /**
+            * 게시글 삭제
+            */
             public boolean delete(int idx) throws SQLException {
-                String sql = "DELETE FROM board WHERE idx=?";
-                try (Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setInt(1, idx);
-                    return ps.executeUpdate() == 1;
+
+                String sql = "DELETE FROM board WHERE idx=?"; // DELETE SQL
+
+                try (Connection con = ds.getConnection(); // 커넥션 얻기
+                        PreparedStatement ps = con.prepareStatement(sql)) { // SQL 준비
+
+                    ps.setInt(1, idx); // 첫 번째 ? = 삭제할 idx
+
+                    return ps.executeUpdate() == 1; // 삭제 성공이면 true
+                }
+            }
+
+            /**
+            * 전체 게시글 개수 조회
+            */
+            public int countAll() throws SQLException {
+
+                String sql = "SELECT COUNT(*) FROM board"; // 전체 행 개수 구하는 SQL
+
+                try (Connection con = ds.getConnection(); // 커넥션 얻기
+                        PreparedStatement ps = con.prepareStatement(sql); // SQL 준비
+                        ResultSet rs = ps.executeQuery()) { // 실행 후 ResultSet 얻기
+
+                    if (rs.next()) { // COUNT(*)는 한 행만 반환됨
+                        return rs.getInt(1); // 첫 번째 컬럼(int) = 전체 개수
+                    }
+
+                    return 0; // 비정상 상황 대비
+                }
+            }
+
+        }
+
+        ```
+
+    4. `/ex/dao.java` - Dao 코드 테스트
+        ```java
+        @WebServlet("/ex/dao")
+        public class dao extends HttpServlet {
+
+            // 데이터베이스 접근 객체(DAO)
+            private final UserDao userDao = new UserDao();
+
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+
+                // 1) 응답 인코딩 설정 (한글 깨짐 방지)
+                resp.setCharacterEncoding("UTF-8");
+
+                // 2) JSON 응답임을 브라우저에게 알림
+                resp.setContentType("application/json; charset=UTF-8");
+
+                try {
+                    // 3) DB에서 사용자 정보 조회
+                    User u = userDao.findById("1234");
+
+                    // 4) 조회된 User 객체를 JSON 문자열로 변환
+                    String json = new Gson().toJson(u);
+
+                    // 5) JSON 응답 출력
+                    resp.getWriter().print(json);
+
+                } catch (SQLException e) {
+                    // 6) DB 예외 발생 시 서버 로그 출력
+                    e.printStackTrace();
+
+                    // 7) 클라이언트에게 오류 응답(JSON) 보내기
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    resp.getWriter().print("{\"error\": \"DB 조회 중 오류가 발생했습니다.\"}");
                 }
             }
         }
         ```
+
+        - `Shift` + `Alt` + `O` = 자동 Import 
+
+        - `Ctrl` + `Click` = 정의된 곳으로 이동
+
+        - `try-with-resources` 패턴 사용
+
+            1. 기존 방식: 일반 `try` 사용 → 직접 닫아야 함
+
+                ```java
+                Connection con = null;
+                PreparedStatement ps = null;
+
+                try {
+                    con = ds.getConnection();
+                    ps = con.prepareStatement(sql);
+                    ps.executeUpdate();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (ps != null) ps.close();
+                    if (con != null) con.close();
+                }
+                ```
+            2. `try-with-resources` 사용 → 자동 close
+                ```java
+                try (Connection con = ds.getConnection();
+                    PreparedStatement ps = con.prepareStatement(sql)) {
+
+                    ps.executeUpdate();
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                ```
 
 ## 3. Service 레이어(비즈니스 규칙)
 
@@ -315,193 +771,122 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
     package localhost.myapp.user;
 
     import java.sql.SQLException;
-
     import localhost.myapp.dto.ServiceResult;
 
-    public class UserService {
-        private final UserDao userDao = new UserDao();
-
-        public ServiceResult register(String id, String password, String email) throws Exception {
-            ServiceResult r = new ServiceResult();
-
-            if (id == null || id.length() < 4) {
-                r.success = false;
-                r.message = "아이디는 4자 이상이어야 합니다.";
-                return r;
-            }
-            if (password == null || password.length() < 4) {
-                r.success = false;
-                r.message = "비밀번호는 4자 이상 입력해야 합니다.";
-                return r;
-            }
-            if (email == null || !email.contains("@")) {
-                r.success = false;
-                r.message = "이메일 형식이 올바르지 않습니다.";
-                return r;
-            }
-            if (userDao.existsById(id) != null) {
-                r.success = false;
-                r.message = "이미 존재하는 아이디입니다.";
-                return r;
-            }
-
-            User u = new User();
-            u.id = id;
-            u.password = password;
-            u.email = email;
-
-            try {
-                boolean inserted = userDao.insert(u);
-                r.success = inserted;
-                r.message = inserted ? "회원가입 성공" : "회원가입 실패";
-            } catch (SQLException e) {
-                r.success = false;
-                r.message = "데이터베이스 오류: " + e.getMessage();
-                throw e; // 부모로 예외 전달
-            }
-
-            
-            return r;
-        }
-
-        public ServiceResult login(String id, String password) throws Exception {
-            ServiceResult r = new ServiceResult();
-            
-            try {
-                boolean inserted = userDao.login(id, password);
-                r.success = inserted;
-                r.message = inserted ? "로그인 성공" : "로그인 실패";
-            } catch (SQLException e) {
-                r.success = false;
-                r.message = "데이터베이스 오류: " + e.getMessage();
-                throw e; // 부모로 예외 전달
-            }
-
-            
-            return r;
-        }
-    }
-    ```
-
-- `BoardService.java`
-    ```java
-    package localhost.myapp.board;
-
-    import localhost.myapp.dto.ServiceResult;
-    import java.sql.SQLException;
-    import java.util.List;
-    
     /**
-     * 비즈니스 규칙/검증을 담당하는 서비스 레이어.
-     * - Controller(Servlet) ↔ Service ↔ DAO 구조
-     * - Read: 원본 타입 반환(List<Board>, Board)
-     * - Write(C/U/D): ServiceResult 반환(일관된 성공/실패 + 메시지)
-     */
-    public class BoardService {
-        private final BoardDao dao;
-    
-        public BoardService() {
-            this.dao = new BoardDao();
+    * User 도메인의 비즈니스 규칙(Service Layer)을 담당.
+    *
+    * ✔ Controller(Servlet) ↔ Service ↔ DAO 구조에서 "Service" 역할
+    *    - 파라미터 검증
+    *    - 중복 확인
+    *    - 예외 처리 일관화
+    *    - DAO 호출 결과를 ServiceResult로 감싸 일관된 응답 제공
+    *
+    * ✔ Create/Update/Delete 결과는 ServiceResult 로 반환해
+    *   Controller 가 성공/실패 메시지를 쉽게 처리하도록 한다.
+    */
+    public class UserService {
+        private final UserDao dao; // 데이터베이스 접근 객체(DAO)
+
+        public UserService() {
+            this.dao = new UserDao();
         }
-    
-        // 테스트/주입용
-        public BoardService(BoardDao dao) {
+
+        // 테스트용 또는 외부에서 DAO 주입 가능하도록 하는 생성자
+        public UserService(UserDao dao) {
             this.dao = dao;
         }
-    
-        /** 목록 페이징 (Read는 데이터 그대로 반환) */
-        public List<Board> list(int page, int size) throws SQLException {
-            if (page < 1)
-                page = 1;
-            if (size < 1)
-                size = 10;
-            return dao.findAll(page, size);
-        }
-    
-        /** 단건 조회 (없으면 null) */
-        public Board get(int idx) throws SQLException {
-            if (idx <= 0)
-                return null;
-            return dao.findById(idx);
-        }
-    
-        /** 생성 (ServiceResult로 성공/실패 메시지 반환) */
-        public ServiceResult create(String title, String content) {
+
+        /** -----------------------------
+        *  🚀 회원가입 처리
+        *  - 입력값 검증
+        *  - 아이디 중복 체크
+        *  - DB insert
+        *  - ServiceResult 로 성공/실패 메시지 반환
+        * ------------------------------ */
+        public ServiceResult register(String id, String password, String email) {
             try {
-                validate(title, content);
-                Board b = new Board();
-                b.title = title.trim();
-                b.content = content.trim();
-    
-                boolean ok = dao.insert(b);
-                return ok ? ok("게시글이 등록되었습니다.")
-                        : fail("등록 실패");
+                // 1) 기본 형식 검증
+                validateRegister(id, password, email);
+
+                // 2) 아이디 중복 검사
+                if (dao.existsById(id) != null) {
+                    return fail("이미 존재하는 아이디입니다.");
+                }
+
+                // 3) User 객체 생성
+                User u = new User();
+                u.id = id.trim();
+                u.password = password;       // DAO에서 SHA2 해시 처리
+                u.email = email.trim();
+
+                // 4) DB 저장
+                boolean ok = dao.insert(u);
+
+                // 5) 결과 반환
+                return ok ? ok("회원가입 성공") : fail("회원가입 실패");
+
             } catch (IllegalArgumentException e) {
+                // validateRegister()에서 발생된 예외 처리
                 return fail(e.getMessage());
+
             } catch (SQLException e) {
-                return fail("DB 오류: " + e.getMessage());
+                // DB 관련 예외 처리
+                return fail("데이터베이스 오류: " + e.getMessage());
             }
         }
-    
-        /** 수정 */
-        public ServiceResult update(int idx, String title, String content) {
+
+        /** -----------------------------
+        *  🔐 로그인 처리
+        *  - 기본값 검증
+        *  - DAO.login(id, pw) 호출
+        *  - 성공/실패를 ServiceResult 로 반환
+        * ------------------------------ */
+        public ServiceResult login(String id, String password) {
             try {
-                if (idx <= 0)
-                    return fail("잘못된 ID");
-                validate(title, content);
-    
-                Board b = new Board();
-                b.idx = idx;
-                b.title = title.trim();
-                b.content = content.trim();
-    
-                boolean ok = dao.update(b);
-                return ok ? ok("수정되었습니다.")
-                        : fail("수정 실패");
-            } catch (IllegalArgumentException e) {
-                return fail(e.getMessage());
+                // 필수 입력값 체크
+                if (id == null || id.trim().isEmpty() ||
+                    password == null || password.isEmpty()) {
+
+                    return fail("아이디/비밀번호를 입력해 주세요.");
+                }
+
+                // DAO에서 비밀번호 SHA2 비교
+                boolean ok = dao.login(id.trim(), password);
+
+                return ok ? ok("로그인 성공") : fail("로그인 실패");
+
             } catch (SQLException e) {
-                return fail("DB 오류: " + e.getMessage());
+                return fail("데이터베이스 오류: " + e.getMessage());
             }
         }
-    
-        /** 삭제 */
-        public ServiceResult delete(int idx) {
-            try {
-                if (idx <= 0)
-                    return fail("잘못된 ID");
-                boolean ok = dao.delete(idx);
-                return ok ? ok("삭제되었습니다.")
-                        : fail("삭제 실패");
-            } catch (SQLException e) {
-                return fail("DB 오류: " + e.getMessage());
+
+        /* ========================================
+        *     🔽 내부 유틸 메서드 (Service 내부용)
+        * ======================================== */
+
+        /** 회원가입 입력값 검증 */
+        private void validateRegister(String id, String password, String email) {
+            if (id == null || id.trim().length() < 4) {
+                throw new IllegalArgumentException("아이디는 4자 이상이어야 합니다.");
+            }
+            if (password == null || password.length() < 4) {
+                throw new IllegalArgumentException("비밀번호는 4자 이상이어야 합니다.");
+            }
+            if (email == null || !email.contains("@")) {
+                throw new IllegalArgumentException("올바른 이메일을 입력해 주세요.");
             }
         }
-    
-        /** 공통 검증 */
-        private void validate(String title, String content) {
-            if (title == null || content == null) {
-                throw new IllegalArgumentException("title/content required");
-            }
-            String t = title.trim();
-            String c = content.trim();
-            if (t.isEmpty() || c.isEmpty()) {
-                throw new IllegalArgumentException("title/content required");
-            }
-            if (t.length() > 200) {
-                throw new IllegalArgumentException("title too long");
-            }
-        }
-    
-        /** 내부 헬퍼: 성공 응답 */
+
+        /** 성공 응답 생성 */
         private ServiceResult ok(String msg) {
             ServiceResult r = new ServiceResult();
             r.success = true;
             r.message = msg;
             return r;
         }
-    
-        /** 내부 헬퍼: 실패 응답 */
+
+        /** 실패 응답 생성 */
         private ServiceResult fail(String msg) {
             ServiceResult r = new ServiceResult();
             r.success = false;
@@ -511,6 +896,187 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
     }
     ```
 
+- `BoardService.java`
+    ```java
+    package localhost.myapp.board; // BoardService 클래스가 속한 패키지 선언
+
+    import localhost.myapp.dto.ServiceResult; // 서비스 성공/실패 정보를 담는 DTO(ServiceResult) import
+    import java.sql.SQLException; // DAO에서 발생하는 SQL 예외 처리용
+    import java.util.List; // List<Board> 반환을 위해 import
+
+    /**
+    * 비즈니스 규칙/검증을 담당하는 서비스 레이어.
+    * - Controller(Servlet) ↔ Service ↔ DAO 구조
+    * - Read: 원본 타입 반환(List<Board>, Board)
+    * - Write(C/U/D): ServiceResult 반환(일관된 성공/실패 + 메시지)
+    */
+    public class BoardService { // BoardService 클래스 정의 시작
+        private final BoardDao dao; // DB 접근을 담당하는 DAO 의존성
+
+        public BoardService() { // 기본 생성자
+            this.dao = new BoardDao(); // 기본적으로 내부에서 BoardDao를 직접 생성
+        }
+
+        // 테스트/주입용 생성자 (DI 테스트 가능)
+        public BoardService(BoardDao dao) { // 외부에서 DAO를 주입할 수 있는 생성자
+            this.dao = dao; // 주입받은 DAO 저장
+        }
+
+        /** 목록 페이징 (Read는 데이터 그대로 반환) */
+        public List<Board> list(int page, int size) throws SQLException { // 게시판 목록을 페이징하여 반환하는 메서드
+            if (page < 1) // page가 1보다 작으면
+                page = 1; // 기본값 1로 보정
+            if (size < 1) // size가 1보다 작으면
+                size = 10; // 기본값 10으로 보정
+            return dao.findAll(page, size); // DAO에게 위임하여 목록 조회
+        }
+
+        /** 전체 개수 */
+        public int count() throws SQLException { // 전체 게시글 개수 반환
+            return dao.countAll(); // DAO에서 countAll 호출
+        }
+
+        /** 단건 조회 (없으면 null) */
+        public Board get(int idx) throws SQLException { // 특정 게시글 1건 조회
+            if (idx <= 0) // idx가 유효하지 않으면
+                return null; // null 반환
+            return dao.findById(idx); // DAO에게 조회 위임
+        }
+
+        /** 생성 (ServiceResult로 성공/실패 메시지 반환) */
+        public ServiceResult create(String title, String content) { // 게시글 생성 서비스
+            try {
+                validate(title, content); // 제목/내용 검증 (공백/길이 검사)
+
+                Board b = new Board(); // 새 Board 객체 생성
+                b.title = title.trim(); // 공백 제거 후 title 저장
+                b.content = content.trim(); // 공백 제거 후 content 저장
+
+                boolean ok = dao.insert(b); // DAO에게 INSERT 요청
+
+                return ok ? ok("게시글이 등록되었습니다.") // 성공 시 메시지 포함 성공 응답
+                        : fail("게시글 등록에 실패했습니다."); // 실패 시 메시지 포함 실패 응답
+
+            } catch (IllegalArgumentException e) { // 검증(validate) 실패 시
+                return fail(e.getMessage()); // 에러 메시지를 담아 실패 응답 반환
+
+            } catch (SQLException e) { // DB 오류 발생 시
+                return fail("데이터베이스 오류: " + e.getMessage()); // DB 오류 메시지 반환
+            }
+        }
+
+        /** 수정 */
+        public ServiceResult update(int idx, String title, String content) { // 게시글 수정 서비스
+            try {
+                if (idx <= 0) // 잘못된 idx라면
+                    return fail("잘못된 게시글 번호입니다."); // 즉시 실패 처리
+
+                validate(title, content); // 제목/내용 검증
+
+                Board b = new Board(); // 수정할 Board 객체 생성
+                b.idx = idx; // 수정 대상 게시글 번호
+                b.title = title.trim(); // 공백 제거 후 제목 저장
+                b.content = content.trim(); // 공백 제거 후 내용 저장
+
+                boolean ok = dao.update(b); // DAO에게 UPDATE 요청
+
+                if (!ok) { // ★ UPDATE는 실행됐지만, 수정된 행이 없을 때 (idx에 해당 게시물이 없는 경우)
+                    return fail("게시물이 존재하지 않습니다."); // ★ 존재하지 않는다는 메시지로 응답
+                }
+
+                return ok("게시글이 수정되었습니다."); // ★ 여기까지 왔으면 정상 수정 성공
+
+            } catch (IllegalArgumentException e) { // validate()에서 발생
+                return fail(e.getMessage()); // 해당 메시지 전달
+
+            } catch (SQLException e) { // DAO(DB)에서 발생
+                return fail("데이터베이스 오류: " + e.getMessage()); // DB 오류 메시지 반환
+            }
+        }
+
+        /** 삭제 */
+        public ServiceResult delete(int idx) { // 게시글 삭제 서비스
+            try {
+                if (idx <= 0) // 삭제할 idx가 잘못된 값이면
+                    return fail("잘못된 게시글 번호입니다."); // 실패 처리
+
+                boolean ok = dao.delete(idx); // DAO에게 DELETE 수행 요청
+
+                if (!ok) { // DELETE 는 실행됐지만, 실제로 삭제된 행이 없을 때
+                    return fail("게시물이 존재하지 않습니다."); // 없는 게시글 번호로 삭제 요청한 상황
+                }
+
+                return ok("게시글이 삭제되었습니다."); // ★ 정상적으로 삭제된 경우
+            } catch (SQLException e) { // DB 오류 처리
+                return fail("데이터베이스 오류: " + e.getMessage()); // DB 오류 메시지
+            }
+        }
+
+        /** 공통 검증 */
+        private void validate(String title, String content) { // 제목과 내용을 검증하는 내부 메서드
+            if (title == null || content == null) { // null 체크
+                throw new IllegalArgumentException("제목과 내용을 입력해야 합니다."); // 잘못된 입력이면 예외 발생
+            }
+
+            String t = title.trim(); // 앞뒤 공백 제거
+            String c = content.trim();
+
+            if (t.isEmpty() || c.isEmpty()) { // 빈 문자열 체크
+                throw new IllegalArgumentException("제목과 내용을 입력해야 합니다.");
+            }
+
+            if (t.length() > 45) { // 제목 길이 제한
+                throw new IllegalArgumentException("제목은 45자 이하로 입력해주세요.");
+            }
+        }
+
+        /** 내부 헬퍼: 성공 응답 */
+        private ServiceResult ok(String msg) { // 성공 결과를 만드는 내부 메서드
+            ServiceResult r = new ServiceResult(); // 새 ServiceResult 객체 생성
+            r.success = true; // 성공 여부 true
+            r.message = msg; // 성공 메시지 저장
+            return r; // 결과 반환
+        }
+
+        /** 내부 헬퍼: 실패 응답 */
+        private ServiceResult fail(String msg) { // 실패 결과를 만드는 내부 메서드
+            ServiceResult r = new ServiceResult(); // 새 ServiceResult 생성
+            r.success = false; // 성공 여부 false
+            r.message = msg; // 실패 메시지 저장
+            return r; // 결과 반환
+        }
+    } // BoardService 클래스 끝
+    ```
+
+- `/ex/service.java` - Service 코드 테스트
+    ```java
+    @WebServlet("/ex/service")
+    public class service extends HttpServlet {
+
+        // 서비스 레이어: 비즈니스 로직(검증/처리)을 담당
+        private final UserService userService = new UserService();
+
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+
+            // 1) 응답을 UTF-8로 인코딩 (한글 깨짐 방지)
+            resp.setCharacterEncoding("UTF-8");
+
+            // 2) JSON 응답임을 브라우저에게 안내
+            resp.setContentType("application/json; charset=UTF-8");
+
+            // 3) 서비스 레이어 호출 (회원가입 로직 실행 예제)
+            //    ServiceResult는 성공/실패 여부와 메시지를 담는 DTO
+            ServiceResult r = userService.register("test", "test", "test@test.com");
+
+            // 4) 응답 객체(ServiceResult)를 JSON 문자열로 변환
+            String json = new Gson().toJson(r);
+
+            // 5) JSON을 HTTP 응답으로 전송
+            resp.getWriter().print(json);
+        }
+    }
+    ```
 
 ## 4. Controller (Servlet)
 
@@ -644,6 +1210,305 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
     }
     ```
 
+- `BoardController.java`
+    ```java
+    package localhost.myapp.board;
+
+    import localhost.myapp.dto.ServiceResult;
+
+    import jakarta.servlet.ServletException;
+    import jakarta.servlet.annotation.WebServlet;
+    import jakarta.servlet.http.HttpServlet;
+    import jakarta.servlet.http.HttpServletRequest;
+    import jakarta.servlet.http.HttpServletResponse;
+    import jakarta.servlet.http.HttpSession;
+
+    import java.io.IOException;
+    import java.sql.SQLException;
+    import java.util.List;
+
+    /**
+    * BoardController
+    *
+    * 라우팅 규칙 (URL 구조)
+    * - GET
+    * /board/list → 목록 페이지
+    * /board/detail → 상세 페이지
+    * /board/write → 글쓰기 페이지
+    * /board/edit → 수정 페이지
+    *
+    * - POST
+    * action=create → 게시글 생성
+    * action=update → 게시글 수정
+    * action=delete → 게시글 삭제
+    *
+    * Controller 역할:
+    * - 사용자 요청 파악 (pathInfo, action)
+    * - 필요한 Service 호출
+    * - JSP로 forward 또는 redirect
+    */
+    @WebServlet("/board/*")
+    public class BoardController extends HttpServlet {
+
+        private BoardService service;
+
+        /** 서블릿 초기화 시 서비스 객체 생성 */
+        @Override
+        public void init() throws ServletException {
+            this.service = new BoardService();
+        }
+
+        /**
+        * GET 요청 처리 (화면 이동)
+        */
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+                throws ServletException, IOException {
+
+            // /board/list → pathInfo = /list
+            String path = req.getPathInfo();
+
+            // /board/ → 기본 URL이면 list로 이동
+            if (path == null || path.equals("/")) {
+                path = "/list";
+            }
+
+            try {
+                switch (path) {
+                    case "/list":
+                        list(req, resp);
+                        break;
+                    case "/detail":
+                        detail(req, resp);
+                        break;
+                    case "/write":
+                        showWriteForm(req, resp);
+                        break;
+                    case "/edit":
+                        showEditForm(req, resp);
+                        break;
+                    default:
+                        // 정의되지 않은 URL
+                        resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+                }
+            } catch (SQLException e) {
+                throw new ServletException(e);
+            }
+        }
+
+        /**
+        * POST 요청 처리 (실제 작업)
+        * action 값으로 구분:
+        * - create
+        * - update
+        * - delete
+        */
+        @Override
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+                throws ServletException, IOException {
+
+            String action = req.getParameter("action");
+
+            if (action == null || action.isEmpty()) {
+                resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            switch (action) {
+                case "create":
+                    create(req, resp);
+                    break;
+                case "update":
+                    update(req, resp);
+                    break;
+                case "delete":
+                    delete(req, resp);
+                    break;
+                default:
+                    resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            }
+        }
+
+        /*
+        * ===========================================================
+        * ============== GET: View 화면 관련 =================
+        * ===========================================================
+        */
+
+        /** 게시판 목록 페이지 */
+        private void list(HttpServletRequest req, HttpServletResponse resp)
+                throws ServletException, IOException, SQLException {
+
+            // 페이지 파라미터 기본값
+            int page = parseInt(req.getParameter("page"), 1);
+            int size = parseInt(req.getParameter("size"), 10);
+
+            // 전체 게시글 개수
+            int totalCount = service.count();
+            int totalPages = (int) Math.ceil(totalCount / (double) size);
+
+            if (totalPages == 0)
+                totalPages = 1;
+            if (page > totalPages)
+                page = totalPages;
+
+            // DB에서 현재 페이지 목록 가져오기
+            List<Board> list = service.list(page, size);
+
+            // 블록 페이징 계산 (5페이지씩)
+            int blockSize = 5;
+            int currentBlock = (page - 1) / blockSize;
+            int startPage = currentBlock * blockSize + 1;
+            int endPage = Math.min(startPage + blockSize - 1, totalPages);
+
+            // JSP에서 사용할 데이터 전달
+            req.setAttribute("list", list);
+            req.setAttribute("page", page);
+            req.setAttribute("size", size);
+            req.setAttribute("totalCount", totalCount);
+            req.setAttribute("totalPages", totalPages);
+            req.setAttribute("startPage", startPage);
+            req.setAttribute("endPage", endPage);
+
+            req.getRequestDispatcher("/WEB-INF/view/board/list.jsp")
+                    .forward(req, resp);
+        }
+
+        /** 게시글 상세 페이지 */
+        private void detail(HttpServletRequest req, HttpServletResponse resp)
+                throws ServletException, IOException, SQLException {
+
+            int idx = parseInt(req.getParameter("idx"), 0);
+
+            // idx 검증 실패 → 목록으로
+            if (idx <= 0) {
+                resp.sendRedirect(req.getContextPath() + "/board/list");
+                return;
+            }
+
+            Board board = service.get(idx);
+
+            // 게시글 존재하지 않으면 목록으로
+            if (board == null) {
+                resp.sendRedirect(req.getContextPath() + "/board/list");
+                return;
+            }
+
+            req.setAttribute("board", board);
+            req.getRequestDispatcher("/WEB-INF/view/board/detail.jsp")
+                    .forward(req, resp);
+        }
+
+        /** 글쓰기 폼 (빈 폼만 보여줌) */
+        private void showWriteForm(HttpServletRequest req, HttpServletResponse resp)
+                throws ServletException, IOException {
+
+            req.getRequestDispatcher("/WEB-INF/view/board/write.jsp")
+                    .forward(req, resp);
+        }
+
+        /** 수정 폼 (기존 데이터 불러오기) */
+        private void showEditForm(HttpServletRequest req, HttpServletResponse resp)
+                throws ServletException, IOException, SQLException {
+
+            int idx = parseInt(req.getParameter("idx"), 0);
+
+            if (idx <= 0) {
+                resp.sendRedirect(req.getContextPath() + "/board/list");
+                return;
+            }
+
+            Board board = service.get(idx);
+
+            if (board == null) {
+                resp.sendRedirect(req.getContextPath() + "/board/list");
+                return;
+            }
+
+            req.setAttribute("board", board);
+            req.getRequestDispatcher("/WEB-INF/view/board/edit.jsp")
+                    .forward(req, resp);
+        }
+
+        /*
+        * ===========================================================
+        * ============== POST: Create/Update/Delete ============
+        * ===========================================================
+        */
+
+        /** 게시글 생성 */
+        private void create(HttpServletRequest req, HttpServletResponse resp)
+                throws IOException {
+
+            String title = req.getParameter("title");
+            String content = req.getParameter("content");
+
+            ServiceResult result = service.create(title, content);
+
+            HttpSession session = req.getSession();
+            String ctx = req.getContextPath();
+
+            if (result.success) {
+                // 성공 메시지 flash로 전달
+                session.setAttribute("flash_success", result.message);
+                resp.sendRedirect(ctx + "/board/list");
+            } else {
+                session.setAttribute("flash_error", result.message);
+                resp.sendRedirect(ctx + "/board/write");
+            }
+        }
+
+        /** 게시글 수정 */
+        private void update(HttpServletRequest req, HttpServletResponse resp)
+                throws IOException {
+
+            int idx = parseInt(req.getParameter("idx"), 0);
+            String title = req.getParameter("title");
+            String content = req.getParameter("content");
+
+            ServiceResult result = service.update(idx, title, content);
+
+            HttpSession session = req.getSession();
+            String ctx = req.getContextPath();
+
+            if (result.success) {
+                session.setAttribute("flash_success", result.message);
+                resp.sendRedirect(ctx + "/board/detail?idx=" + idx);
+            } else {
+                session.setAttribute("flash_error", result.message);
+                resp.sendRedirect(ctx + "/board/edit?idx=" + idx);
+            }
+        }
+
+        /** 게시글 삭제 */
+        private void delete(HttpServletRequest req, HttpServletResponse resp)
+                throws IOException {
+
+            int idx = parseInt(req.getParameter("idx"), 0);
+            ServiceResult result = service.delete(idx);
+
+            HttpSession session = req.getSession();
+            String ctx = req.getContextPath();
+
+            if (result.success)
+                session.setAttribute("flash_success", result.message);
+            else
+                session.setAttribute("flash_error", result.message);
+
+            resp.sendRedirect(ctx + "/board/list");
+        }
+
+        /** 숫자 파싱 (예외 발생 → 기본값 반환) */
+        private int parseInt(String s, int defaultValue) {
+            try {
+                return Integer.parseInt(s);
+            } catch (Exception e) {
+                return defaultValue;
+            }
+        }
+    }
+    ```
+
 ## 5. View (JSP/HTML)
 
 - 입력폼, 목록/상세 페이지, 에러 메시지 표기
@@ -659,19 +1524,67 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
     - `login_ok.jsp`
 
+- `view/board` 폴더 참고
+    - `detail.jsp`
+
+    - `edit.jsp`
+
+    - `list.jsp`
+
+    - `write.jsp`
+
+
+
 
 
 ## 🧩 실습 / 과제
-- 게시판 관련 BoardController 와 View 만들기
 
-    라우팅 예시)
+- 로그인 기능이 포함된 게시판 사이트 만들기
 
-    | 구분          | HTTP 메서드 | 경로(URI)         | 설명          | View 파일                         | 비고                   |
-    | ----------- | -------- | --------------- | ----------- | ------------------------------- | -------------------- |
-    | **목록 페이지**  | GET      | `/board/list`   | 게시글 목록 화면   | `/WEB-INF/view/board/list.jsp`  | DB 목록 조회 후 forward   |
-    | **상세 페이지**  | GET      | `/board/view`   | 게시글 상세 보기   | `/WEB-INF/view/board/view.jsp`  | `?idx=3` 형태로 접근      |
-    | **글쓰기 페이지** | GET      | `/board/write`  | 게시글 작성 폼 표시 | `/WEB-INF/view/board/write.jsp` | 단순 화면 (폼)            |
-    | **글쓰기 처리**  | POST     | `/board/write`  | 게시글 등록 처리   | redirect `/board/list`          | form 데이터 → DB insert |
-    | **수정 페이지**  | GET      | `/board/edit`   | 게시글 수정 폼 표시 | `/WEB-INF/view/board/edit.jsp`  | 기존 데이터 불러오기          |
-    | **수정 처리**   | POST     | `/board/edit`   | 게시글 수정 처리   | redirect `/board/view?idx=3`    | DB update            |
-    | **삭제 처리**   | POST     | `/board/delete` | 게시글 삭제 처리   | redirect `/board/list`          | DB delete            |
+- 라우팅 표
+
+    > `{ctx}`는 `req.getContextPath()`
+
+1. 게시판 (`BoardController.java` → `/board/*`)
+
+    1-1. `GET` 요청
+    | HTTP | URL                           | 설명                    | 컨트롤러 메서드         | 뷰/처리                             | 주요 파라미터                |
+    | ---- | ----------------------------- | --------------------- | ---------------- | -------------------------------- | ---------------------- |
+    | GET  | `{ctx}/board(/)`              | 기본 진입 → 목록으로 이동       | `doGet` → `list` | `list.jsp`                       | `page`(선택), `size`(선택) |    
+    | GET  | `{ctx}/board/list`            | 게시글 목록                | `list`           | `/WEB-INF/view/board/list.jsp`   | `page`, `size`         |
+    | GET  | `{ctx}/board/detail?idx={번호}` | 게시글 상세                | `detail`         | `/WEB-INF/view/board/detail.jsp` | `idx` (필수)             |
+    | GET  | `{ctx}/board/write`           | 글쓰기 폼                 | `showWriteForm`  | `/WEB-INF/view/board/write.jsp`  | -                      |
+    | GET  | `{ctx}/board/edit?idx={번호}`   | 수정 폼                  | `showEditForm`   | `/WEB-INF/view/board/edit.jsp`   | `idx` (필수)             |
+
+    1-2. `POST` 요청
+    > 공통: action 파라미터로 분기 (create/update/delete)
+
+    | HTTP | URL                             | 설명     | 컨트롤러 메서드 | 리다이렉트 위치                                                               | 주요 파라미터                                    |
+    | ---- | ------------------------------- | ------ | -------- | ---------------------------------------------------------------------- | ------------------------------------------ |
+    | POST | `{ctx}/board` + `action=create` | 게시글 생성 | `create` | 성공: `{ctx}/board/list`<br>실패: `{ctx}/board/write`                      | `title`, `content`, `action=create`        |
+    | POST | `{ctx}/board` + `action=update` | 게시글 수정 | `update` | 성공: `{ctx}/board/detail?idx={idx}`<br>실패: `{ctx}/board/edit?idx={idx}` | `idx`, `title`, `content`, `action=update` |
+    | POST | `{ctx}/board` + `action=delete` | 게시글 삭제 | `delete` | `{ctx}/board/list`                                                     | `idx`, `action=delete`                     |
+    | POST | `{ctx}/board` (action 없음/이상)    | 잘못된 요청 | `doPost` | 400 Bad Request                                                        | -                                          |
+
+2. 사용자 (`UserController.java` → `/user/*`)
+
+    2-1. `GET` 요청
+    | HTTP | URL                      | 설명               | 컨트롤러 메서드               | 뷰/처리                                                   | 비고                 |
+    | ---- | ------------------------ | ---------------- | ---------------------- | ------------------------------------------------------ | ------------------ |
+    | GET  | `{ctx}/user`             | 기본 → 로그인으로 리다이렉트 | `doGet` (path="/")     | `redirect` → `{ctx}/user/login`                        | -                  |
+    | GET  | `{ctx}/user/`            | 위와 동일            | `doGet` (normPath="/") | `redirect` → `{ctx}/user/login`                        | -                  |
+    | GET  | `{ctx}/user/login`       | 로그인 폼            | `doGet`                | `/WEB-INF/view/user/login.jsp`                         | -                  |
+    | GET  | `{ctx}/user/login_ok`    | 로그인 성공 페이지       | `doGet`                | `/WEB-INF/view/user/login_ok.jsp`                      | 세션에 `id` 있어야 정상 흐름 |
+    | GET  | `{ctx}/user/register`    | 회원가입 폼           | `doGet`                | `/WEB-INF/view/user/register.jsp`                      | -                  |
+    | GET  | `{ctx}/user/register_ok` | 회원가입 완료 페이지      | `doGet`                | `/WEB-INF/view/user/register_ok.jsp`                   | -                  |
+    | GET  | `{ctx}/user/logout`      | 로그아웃             | `doGet`                | 세션 `invalidate()` 후<br>`redirect` → `{ctx}/user/login` | -                  |
+    | GET  | `{ctx}/user/*` (이외)     | 없는 페이지           | `doGet`                | 404 Not Found                                          | -                  |
+
+    2-2. `POST` 요청
+    > `/login`, `/register` 두 가지만 처리
+
+    | HTTP | URL                   | 설명      | 컨트롤러 메서드                    | 리다이렉트 위치                                                  | 주요 파라미터                   |
+    | ---- | --------------------- | ------- | --------------------------- | --------------------------------------------------------- | ------------------------- |
+    | POST | `{ctx}/user/login`    | 로그인 처리  | `doPost` (path="/login")    | 성공: `{ctx}/user/login_ok`<br>실패: `{ctx}/user/login`       | `id`, `password`          |
+    | POST | `{ctx}/user/register` | 회원가입 처리 | `doPost` (path="/register") | 성공: `{ctx}/user/register_ok`<br>실패: `{ctx}/user/register` | `id`, `password`, `email` |
+    | POST | `{ctx}/user/*` (이외)   | 잘못된 요청  | `doPost` default            | 400 Bad Request                                           | -                         |
