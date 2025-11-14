@@ -676,7 +676,31 @@ public class RequestLogFilter implements Filter {   // Filter 인터페이스 �
 
         ```
 
-    4. `/ex/dao.java` - Dao 코드 테스트
+    4. `PreparedStatement`
+
+        > 미리 컴파일된 SQL + 바인딩만 하는 안전하고 빠른 SQL 실행 도구. 
+
+        | 메서드               | 용도                               |
+        | ----------------- | -------------------------------- |
+        | `setXXX()` 계열 메서드  | 값 바인딩 ( setString, setInt, setTimestamp, setObject )                           |
+        | `executeQuery()`  | SELECT                           |
+        | `executeUpdate()` | INSERT / UPDATE / DELETE         |
+            
+        - SQL Injection 방지 ( setXXX() 계열 메서드 )
+
+            > ? 에 값만 넣기 때문에 "kim"; DROP TABLE user; --" 같은 공격도 문자열로 취급됨
+        
+        - `try-with-resources` 패턴 사용
+            ```java
+                try (
+                    Connection con = ds.getConnection();
+                    PreparedStatement ps = con.prepareStatement(sql)
+                ) {
+                    ...
+                }
+            ```
+
+    5. `/ex/dao.java` - Dao 코드 테스트
         ```java
         @WebServlet("/ex/dao")
         public class dao extends HttpServlet {
@@ -718,37 +742,6 @@ public class RequestLogFilter implements Filter {   // Filter 인터페이스 �
         - `Shift` + `Alt` + `O` = 자동 Import 
 
         - `Ctrl` + `Click` = 정의된 곳으로 이동
-
-        - `try-with-resources` 패턴 사용
-
-            1. 기존 방식: 일반 `try` 사용 → 직접 닫아야 함
-
-                ```java
-                Connection con = null;
-                PreparedStatement ps = null;
-
-                try {
-                    con = ds.getConnection();
-                    ps = con.prepareStatement(sql);
-                    ps.executeUpdate();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                } finally {
-                    if (ps != null) ps.close();
-                    if (con != null) con.close();
-                }
-                ```
-            2. `try-with-resources` 사용 → 자동 close
-                ```java
-                try (Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)) {
-
-                    ps.executeUpdate();
-
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-                ```
 
 ## 3. Service 레이어(비즈니스 규칙)
 
