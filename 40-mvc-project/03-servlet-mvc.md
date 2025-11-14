@@ -689,16 +689,7 @@ public class RequestLogFilter implements Filter {   // Filter 인터페이스 �
         - SQL Injection 방지 ( setXXX() 계열 메서드 )
 
             > ? 에 값만 넣기 때문에 "kim"; DROP TABLE user; --" 같은 공격도 문자열로 취급됨
-        
-        - `try-with-resources` 패턴 사용
-            ```java
-                try (
-                    Connection con = ds.getConnection();
-                    PreparedStatement ps = con.prepareStatement(sql)
-                ) {
-                    ...
-                }
-            ```
+            
 
     5. `/ex/dao.java` - Dao 코드 테스트
         ```java
