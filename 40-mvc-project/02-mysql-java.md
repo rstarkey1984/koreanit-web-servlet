@@ -114,8 +114,15 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
         "[html]": {
             "editor.defaultFormatter": "esbenp.prettier-vscode",
             "editor.formatOnSave": true
+        },
+
+        // Javascript 파일에도 Prettier 자동 포매팅 적용
+        "[javascript]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+            "editor.formatOnSave": true
         }
     }
+
     ```
 
 ## 1. MySQL + JDBC (DriverManager 직접 사용)

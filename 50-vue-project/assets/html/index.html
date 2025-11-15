@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vue 게시판 SPA (CDN, Composition API)</title>
+    <!-- Vue 3 CDN: 전역 변수 Vue 제공 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="/assets/css/vue.css" />
+  </head>
+  <body>
+    <div id="app">
+      <h1>Vue + 서블릿 게시판 SPA (Composition API)</h1>
+
+      <!-- 로그인 / 로그아웃 영역 -->
+      <div class="card">
+        <h2>로그인</h2>
+
+        <!-- loginUserId 가 없을 때(=로그인 전) 로그인 폼 -->
+        <div v-if="!loginUserId">
+          <!-- @submit.prevent : 새로고침 막고 login()만 실행 -->
+          <form @submit.prevent="login">
+            <div class="row" style="margin-bottom: 8px">
+              <div>
+                <label>
+                  아이디
+                  <!-- reactive 객체 loginForm.id 와 양방향 바인딩 -->
+                  <input v-model="loginForm.id" placeholder="아이디" />
+                </label>
+              </div>
+              <div>
+                <label>
+                  비밀번호
+                  <input
+                    v-model="loginForm.password"
+                    type="password"
+                    placeholder="비밀번호"
+                  />
+                </label>
+              </div>
+              <div>
+                <!-- loading(ref) 값이 true 이면 비활성화 -->
+                <button class="primary" type="submit" :disabled="loading">
+                  로그인
+                </button>
+              </div>
+            </div>
+            <div class="error" v-if="loginError">{{ loginError }}</div>
+            <div class="muted">
+              ※ 예제용으로 API에 로그인만 요청하고, 클라이언트에서
+              로컬스토리지로 로그인 상태를 기억합니다.
+            </div>
+          </form>
+        </div>
+
+        <!-- loginUserId 가 있을 때(=로그인 후) -->
+        <div v-else class="row">
+          <!-- 템플릿에서는 ref가 자동 언래핑되어 .value 안 써도 됨 -->
+          <div>안녕하세요, <strong>{{ loginUserId }}</strong> 님 👋</div>
+          <button class="secondary" @click="logout">로그아웃</button>
+        </div>
+      </div>
+
+      <!-- 게시판 목록 / 페이징 -->
+      <div class="card">
+        <div class="row" style="justify-content: space-between">
+          <h2>게시판 목록</h2>
+          <div class="row">
+            <span class="muted">페이지당</span>
+            <!-- v-model.number : 문자열이 아닌 숫자로 바인딩 -->
+            <select v-model.number="size" @change="changeSize">
+              <option :value="5">5개</option>
+              <option :value="10">10개</option>
+              <option :value="20">20개</option>
+            </select>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 60px">번호</th>
+              <th>제목</th>
+              <th style="width: 160px" class="right">액션</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- boards 배열이 비어 있으면 안내 문구 -->
+            <tr v-if="boards.length === 0">
+              <td colspan="3" class="muted">게시글이 없습니다.</td>
+            </tr>
+            <!-- boards(ref 배열) 순회 -->
+            <tr v-for="b in boards" :key="b.idx">
+              <td>{{ b.idx }}</td>
+              <td>{{ b.title || '(제목 없음)' }}</td>
+              <td class="right">
+                <button
+                  class="secondary"
+                  @click="startEdit(b)"
+                  :disabled="loading"
+                >
+                  수정
+                </button>
+                <button
+                  class="danger"
+                  style="margin-left: 4px"
+                  @click="deleteBoard(b.idx)"
+                  :disabled="loading"
+                >
+                  삭제
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- 페이징 버튼 -->
+        <div
+          class="row"
+          style="justify-content: space-between; margin-top: 10px"
+        >
+          <div>
+            <button
+              class="secondary"
+              @click="prevPage"
+              :disabled="page <= 1 || loading"
+            >
+              ◀ 이전
+            </button>
+            <button
+              class="secondary"
+              style="margin-left: 4px"
+              @click="nextPage"
+              :disabled="!hasNext || loading"
+            >
+              다음 ▶
+            </button>
+          </div>
+          <div class="muted">현재 페이지: {{ page }}</div>
+        </div>
+
+        <div class="error" v-if="boardError" style="margin-top: 6px">
+          {{ boardError }}
+        </div>
+      </div>
+
+      <!-- 글쓰기 / 수정 폼 -->
+      <div class="card">
+        <h2 v-if="boardMode === 'create'">글쓰기</h2>
+        <h2 v-else>게시글 수정 (번호: {{ boardForm.idx }})</h2>
+
+        <!-- submit 시 submitBoard() 호출 -->
+        <form @submit.prevent="submitBoard">
+          <div style="margin-bottom: 8px">
+            <label>
+              제목
+              <!-- boardForm(reactive) 의 title과 바인딩 -->
+              <input
+                v-model="boardForm.title"
+                placeholder="제목을 입력하세요"
+                style="width: 100%; box-sizing: border-box"
+              />
+            </label>
+          </div>
+          <div style="margin-bottom: 8px">
+            <label>
+              내용
+              <textarea
+                v-model="boardForm.content"
+                placeholder="내용을 입력하세요"
+              ></textarea>
+            </label>
+          </div>
+          <div class="row" style="justify-content: flex-end">
+            <!-- 수정 모드일 때만 취소 버튼 -->
+            <button
+              v-if="boardMode === 'edit'"
+              type="button"
+              class="secondary"
+              @click="cancelEdit"
+              :disabled="loading"
+            >
+              취소
+            </button>
+            <!-- 등록/수정 공용 버튼 -->
+            <button
+              class="primary"
+              type="submit"
+              :disabled="loading || !loginUserId"
+              style="margin-left: 6px"
+            >
+              {{ boardMode === 'create' ? '등록' : '수정 완료' }}
+            </button>
+          </div>
+          <div class="muted" style="margin-top: 4px">
+            ※ "로그인한 아이디가 있어야" 글 작성/수정 버튼이 활성화됩니다.
+          </div>
+        </form>
+
+        <div class="error" v-if="formError" style="margin-top: 6px">
+          {{ formError }}
+        </div>
+        <div class="success" v-if="formSuccess" style="margin-top: 6px">
+          {{ formSuccess }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Vue 코드 외부 파일 -->
+    <script src="/assets/js/vue.js"></script>
+  </body>
+</html>
