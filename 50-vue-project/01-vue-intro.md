@@ -20,7 +20,7 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 1. 바닐라 `Javascript`
     > DOM을 직접 찾아서 직접 수정해야 함.
 
-    `/vue/1.html`
+    `/vue-01/1.html`
     ```html
     <!DOCTYPE html>
     <html lang="ko">
@@ -58,7 +58,7 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 2. Vue 버전 (CDN 방식)
     > "데이터만 바꾸면 화면이 자동 업데이트" 됨.
 
-    `/vue/2.html`
+    `/vue-01/2.html`
     ```html
    <!DOCTYPE html>
     <html lang="ko">
@@ -167,21 +167,14 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 
     > Vue의 “반응형 상태(reactive state)”를 만드는 함수들
 
-    Vue에서는 화면이 자동으로 업데이트되게 만들려면
-    데이터를 “반응형(Reactive)”으로 만들어야 한다.
+    - Vue에서는 화면이 자동으로 업데이트되게 만들려면 데이터를 “반응형(Reactive)”으로 만들어야 한다.
 
-    그때 사용하는 대표 함수가 바로:
-
-    | 함수             | 한글 설명              | 특징                                 |
-    | -------------- | ------------------ | ---------------------------------- |
-    | **ref()**      | 단일 값 반응형 상태 생성 함수  | number, string 같은 **원시값**          |
-    | **reactive()** | 객체/배열 반응형 상태 생성 함수 | 객체 전체를 **프록시(Proxy)로 감싸서** 반응형 만들기 |
-
+    - 그때 사용하는 대표 함수가 바로: `ref()`, `reactive()`
 
     ### 1. `ref()` 는 무엇인가?
     > "반응형 변수"를 만드는 함수
 
-    - 한 개 값(count, message, isOpen) 같은 "단일 데이터"를 반응형으로 만들 때 사용
+    - 한 개 값(`int`, `string`, `boolean`) 같은 "단일 데이터" 또는 배열( `[ ]` )을 반응형으로 만들 때 사용
     - 값을 꺼낼 때 .value가 필요함
 
         - 예시) 이 때 count는 그냥 숫자 0 이 아니다.
@@ -196,15 +189,15 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 
         - Javascript 코드에서 값 변경
             ```js
-            count.value++;   // 반드시 .value 필요
+            count.value++; // Vue가 변경을 감지하고 화면을 자동으로 업데이트
             ```
 
-        - 템플릿(Vue가 관리하는 영역에서 쓸때는) 에서 값 변경 ( Vue가 자동으로 .value를 언래핑 ) 
+        - Vue 템플릿 에서 값 변경 ( Vue가 자동으로 .value를 언래핑 ) 
             ```html
             <button @click="count++">+1</button>
             ```
         
-        - HTML에서 표시할때는
+        - Vue 템플릿에서 화면에 표시할때는,
             ```html
             <p>{{ count }}</p>
             ```
@@ -215,7 +208,6 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 
     - 여러 속성을 가진 객체나 배열을 반응형으로 만들 때 사용
 
-    - `.value` 필요 없음
         - 예시)
 
             ```js
@@ -223,17 +215,19 @@ CDN 방식으로 바로 화면에 Vue 띄우기
                 name: "Tom",
                 age: 20
             })
-            user.age++
             ```
-
-        - 내부적으로는 Proxy로 감싸져 있음:
+        - Javascript 코드에서 값 변경
             ```js
-            user.name = 'Jane';  
-            user.age++;
+            user.age++
+            user.name = "Jane";
             ```
-            → 모두 UI가 자동으로 업데이트됨
 
-        - 템플릿에서도 그대로 사용
+        - Vue 템플릿 에서 값 변경
+            ```html
+            <button @click="user.age++">+1</button>
+            ```
+
+        - Vue 템플릿에서 화면에 표시할때는,
             ```html
             <p>{{ user.name }}</p>
             ```
@@ -247,7 +241,7 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 
 ## 5. Vue 반응성(ref, reactive) 완전 이해
 
-`/vue/3.html`
+`/vue-01/3.html`
 ```html
 <!DOCTYPE html>
 <html lang="ko">
@@ -418,6 +412,17 @@ Proxy 객체로 감싸져서 속성 변화를 자동 감지!
 </html>
 ```
 
+- ref() 요약
+
+    - 내부적으로는 `{ value: 실제값 }` 구조
+
+    - JS 코드에서는 `count.value`로 접근
+    - 템플릿(HTML)에서는 `{{ count }}`, `@click="count++"` 처럼 `.value` 생략 가능
+
+- reactive() 요약
+
+    - JS 코드와 템플릿 모두에서 `user.name`, `user.age` 처럼 그대로 사용
+
 
 ## 6. 이벤트 핸들링
 > 이벤트 핸들링 (@click, @input …)
@@ -439,7 +444,7 @@ Vue에서는 HTML 이벤트를 @이벤트명 으로 연결한다.
 
 
 ### 이벤트 핸들링 예제 ( @input, @change, @keyup )
-`/vue/4.html`
+`/vue-01/4.html`
 
 ```html
 <!DOCTYPE html>
@@ -489,7 +494,9 @@ Vue에서는 HTML 이벤트를 @이벤트명 으로 연결한다.
       <!-- @keyup -->
       <div class="box">
         <h3>3. @keyup — 키를 눌렀다가 뗄 때 실행</h3>
-        <input placeholder="키보드 입력해보세요" @keyup="onKeyup" />
+        <input placeholder="키보드 입력해보세요" @keyup="onKeyup" />        
+        <!-- @keyup.enter="fn" 처럼 특정 키(Enter)만 잡아서 처리할 수 있다.-->
+
         <p>이벤트 발생: <b>{{ keyupMsg }}</b></p>
       </div>
     </div>
@@ -497,21 +504,24 @@ Vue에서는 HTML 이벤트를 @이벤트명 으로 연결한다.
     <script>
       const { createApp, ref } = Vue;
 
-      const app = createApp({
+      createApp({
         setup() {
           const inputMsg = ref("");
           const changeMsg = ref("");
           const keyupMsg = ref("");
 
           const onInput = (e) => {
+            // 입력이 바뀔 때마다 바로 호출
             inputMsg.value = "입력 중: " + e.target.value;
           };
 
           const onChange = (e) => {
+            // 포커스를 잃거나, 엔터를 눌러 '입력 확정'될 때 호출
             changeMsg.value = "변경됨: " + e.target.value;
           };
 
           const onKeyup = (e) => {
+            // 키를 눌렀다가 뗄 때마다 호출
             keyupMsg.value = "키업: " + e.key + " (값: " + e.target.value + ")";
           };
 
@@ -545,7 +555,7 @@ Vue에서는 HTML 이벤트를 @이벤트명 으로 연결한다.
     return { msg }
     ```
 
-2. `/vue/5.html` 실전 예제 — 간단한 로그인 폼
+2. `/vue-01/5.html` 실전 예제 — 간단한 로그인 폼
     ```html
     <!DOCTYPE html>
     <html lang="ko">
@@ -599,18 +609,207 @@ Vue에서는 HTML 이벤트를 @이벤트명 으로 연결한다.
     ```
     > v-if는 조건이 변경될 때마다 해당 요소를 DOM에서 추가하거나 제거합니다. 그래서 DOM 업데이트가 일어날 때 성능에 영향을 줄 수 있습니다.
 
+    > 즉, **드물게** 보였다 안 보였다 할 때 (렌더링 비용이 괜찮을 때)
+
 - `v-show` : 조건이 참일 때 요소를 보여주고, 거짓일 때는 display: none 스타일을 추가하여 숨깁니다.
     ```html
     <div v-show="isVisible">이 요소는 isVisible이 true일 때만 보입니다.</div>
     ```
     > v-show는 요소가 DOM에서 제거되지 않기 때문에 빠르게 토글할 수 있습니다. 하지만 처음에 페이지가 렌더링될 때 요소가 항상 로드되어 있기 때문에 v-if보다 초기 렌더링 성능이 더 느릴 수 있습니다.
 
+    > 즉, **자주 토글**되는 요소에 사용 (탭, 토글 스위치 등)
+
 
 ## 9. 리스트 렌더링 (v-for)
 > v-for는 배열이나 객체를 반복하여 HTML 요소를 렌더링할 때 사용합니다. Vue는 v-for 디렉티브를 통해 데이터를 반복하여 동적으로 UI를 업데이트할 수 있습니다.
 
+1. 기본 문법
 
+    ```html
+    <li v-for="item in items">
+    {{ item }}
+    </li>
+    ```
+    - items : setup()에서 만든 배열 (예: ['사과', '바나나'])
+    - item : 반복하면서 배열 안에 들어있는 요소 하나씩
+
+    - JS 코드로 풀어 쓰면 이런 느낌:
+        ```js
+        items.forEach((item) => {
+        // <li>{{ item }}</li> 를 하나씩 만들어서 화면에 추가
+        });
+        ```
+
+2. `/vue-01/6.html` — 기본 v-for 예제
+
+    ```html
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Vue 리스트 렌더링 (v-for)</title>
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            margin-bottom: 10px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 4px 0;
+        }
+        .box {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 16px 0;
+            background: #f8faff;
+        }
+        input {
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+        button {
+            padding: 6px 10px;
+            font-size: 14px;
+            margin-left: 4px;
+            cursor: pointer;
+        }
+        </style>
+    </head>
+
+    <body>
+        <h1>v-for로 목록 렌더링하기</h1>
+
+        <div id="app">
+        <!-- 1) 기본 리스트 렌더링 -->
+        <div class="box">
+            <h3>1. 과일 리스트 (기본 v-for)</h3>
+            <ul>
+            <!-- fruits 배열을 순회하면서 fruit 를 하나씩 꺼냄 -->
+            <li v-for="fruit in fruits" :key="fruit">
+                {{ fruit }}
+            </li>
+            </ul>
+        </div>
+
+        <!-- 2) (item, index) 같이 사용 -->
+        <div class="box">
+            <h3>2. (item, index) 함께 사용</h3>
+            <ul>
+            <!-- (todo, index) 형식으로 인덱스도 함께 사용 가능 -->
+            <li v-for="(todo, index) in todos" :key="index">
+                {{ index }}번: {{ todo }}
+            </li>
+            </ul>
+        </div>
+
+        <!-- 3) 객체 배열 + key 사용 -->
+        <div class="box">
+            <h3>3. 객체 배열 + key (권장)</h3>
+            <p>학생 목록:</p>
+            <ul>
+            <!-- students 배열의 각 요소는 { id, name } 형태의 객체 -->
+            <!-- :key는 Vue가 각 요소를 구분할 수 있게 해주는 유니크 값 -->
+            <li v-for="s in students" :key="s.id">
+                {{ s.id }}번 - {{ s.name }}
+            </li>
+            </ul>
+        </div>
+
+        <!-- 4) 입력으로 리스트에 항목 추가 -->
+        <div class="box">
+            <h3>4. 입력값을 v-for 리스트에 추가해보기</h3>
+            <input
+            v-model="newTodo"
+            placeholder="할 일을 입력하고 추가 버튼을 눌러보세요"
+            />
+            <button @click="addTodo">추가</button>
+
+            <ul>
+            <!-- 실제 서비스에서는 i보다는 todo.id처럼 '고유값'을 쓰는 게 더 좋음 -->
+            <li v-for="(todo, i) in todos" :key="i">
+                {{ i + 1 }}. {{ todo }}
+            </li>
+            </ul>
+        </div>
+        </div>
+
+        <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+            // 1) 문자열 배열
+            const fruits = ref(["사과", "바나나", "포도"]);
+
+            // 2) 할 일 목록
+            const todos = ref(["Vue 공부하기", "JSP 복습하기"]);
+
+            // 3) 객체 배열 (id, name)
+            const students = ref([
+                { id: 1, name: "홍길동" },
+                { id: 2, name: "김철수" },
+                { id: 3, name: "이영희" },
+            ]);
+
+            // 4) 입력값을 받아서 todos에 추가
+            const newTodo = ref("");
+
+            const addTodo = () => {
+                if (newTodo.value.trim() === "") return;
+                todos.value.push(newTodo.value.trim());
+                newTodo.value = "";
+            };
+
+            return {
+                fruits,
+                todos,
+                students,
+                newTodo,
+                addTodo,
+            };
+            },
+        }).mount("#app");
+        </script>
+    </body>
+    </html>
+    ```
+
+3. v-for에서 key가 왜 중요할까?
+    ```html
+    <li v-for="s in students" :key="s.id">
+        {{ s.id }} - {{ s.name }}
+    </li>
+    ```
+    - `:key` 를 안 쓰면
+
+        - Vue가 “어떤 항목이 어떤 DOM인지” 정확히 구분하기 힘들다
+
+        - 항목을 중간에 추가/삭제할 때 렌더링이 꼬이거나 성능이 떨어질 수 있음
+
+    - `:key`="고유값" (예: DB의 PK, id 등)을 넣어주면
+
+        - Vue가 리스트를 효율적으로 비교/업데이트할 수 있음
+
+        - 리스트 렌더링할 땐 항상 key 쓰는 습관 들이기!
+
+
+
+## 💡 **요약정리**  
+
+> Vue는 DOM을 직접 조작하지 않고 데이터만 바꾸면 화면이 자동으로 업데이트되는 프레임워크이다.
+
+> ref()(단일 값)와 reactive()(객체/배열)로 반응형 상태를 만들고, v-model, v-if, v-for, @click 같은 디렉티브로 HTML과 JS를 자연스럽게 연결한다.
 
 
 ## 🧩 실습 / 과제
 
+- `6.html` 에서 [추가] 버튼을 눌렀을때, `1. 과일 리스트 (기본 v-for)` 와 `3. 객체 배열 + key (권장)` 에도 입력한 내용 추가되도록 수정하기. 
+
+    - `addTodo()` 함수를 수정하면됨.

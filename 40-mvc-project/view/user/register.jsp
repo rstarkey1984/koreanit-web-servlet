@@ -31,6 +31,7 @@ taglib prefix="c" uri="jakarta.tags.core" %>
                 name="id"
                 placeholder="예) smartstudent01"
                 required
+                maxlength="20"
               />
             </div>
 
@@ -55,6 +56,7 @@ taglib prefix="c" uri="jakarta.tags.core" %>
                 name="email"
                 placeholder="you@example.com"
                 required
+                maxlength="45"
               />
             </div>
 

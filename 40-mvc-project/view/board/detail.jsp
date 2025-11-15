@@ -63,22 +63,22 @@ taglib prefix="c" uri="jakarta.tags.core" %>
             <div style="padding: 5px"><c:out value="${board.content}" /></div>
           </div>
 
-          <!-- 버튼들 -->
-          <div style="display: flex; gap: 8px; flex-direction: column">
-            <!-- 목록 -->
+          <!-- 버튼들 (목록 / 수정 / 삭제 한 줄 배치) -->
+          <div class="button-row">
+            <!-- 목록으로 -->
             <a
               href="${pageContext.request.contextPath}/board/list"
-              class="button-link"
+              class="btn btn-secondary"
             >
-              <button type="button" class="btn btn-secondary">목록으로</button>
+              목록으로
             </a>
 
-            <!-- 수정 -->
+            <!-- 수정하기 -->
             <a
               href="${pageContext.request.contextPath}/board/edit?idx=${board.idx}"
-              class="button-link"
+              class="btn"
             >
-              <button type="button" class="btn">수정하기</button>
+              수정하기
             </a>
 
             <!-- 삭제 (POST) -->
@@ -89,7 +89,13 @@ taglib prefix="c" uri="jakarta.tags.core" %>
             >
               <input type="hidden" name="action" value="delete" />
               <input type="hidden" name="idx" value="${board.idx}" />
-              <button type="submit" class="btn btn-danger">삭제하기</button>
+              <button
+                type="submit"
+                class="btn btn-danger"
+                style="margin-top: 0"
+              >
+                삭제하기
+              </button>
             </form>
           </div>
         </div>

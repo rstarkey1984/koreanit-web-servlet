@@ -43,9 +43,9 @@
 
 1. [CDN 방식으로 바로 화면에 Vue 띄우기](50-vue-project/01-vue-intro.md)
 
-2. Axios 또는 Fetch를 이용한 API 연동 구조 잡기
+2. [Fetch를 이용한 API 요청 / 응답](50-vue-project/02-vue-fetch.md)
 
-3. 컴포넌트 기반 UI 개발 및 API 데이터 렌더링
+3. [컴포넌트 기반 UI 개발 및 API 데이터 렌더링](50-vue-project/03-vue-component-api.md)
 
 
 ## 🎯 학습 목표

@@ -491,3 +491,27 @@ a.button-link {
     padding: 20px 16px; /* 모바일 읽기 좋은 패딩 */
   }
 }
+
+.button-row {
+  display: flex;
+  justify-content: center; /* 가운데 정렬 */
+  align-items: center;
+  gap: 10px; /* 버튼 사이 간격 */
+  margin-top: 16px;
+  flex-wrap: wrap; /* 좁은 화면에서는 자동으로 다음 줄로 */
+}
+
+.button-row .btn {
+  min-width: 110px; /* 버튼 가로폭 일정하게 */
+  padding: 10px 16px;
+  font-size: 0.9rem;
+}
+
+.button-row form {
+  margin: 0; /* form 기본 margin 제거 */
+}
+
+/* a 태그를 버튼처럼 쓸 때 */
+a.btn {
+  text-decoration: none;
+}

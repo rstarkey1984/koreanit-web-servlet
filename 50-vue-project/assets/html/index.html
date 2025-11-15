@@ -5,26 +5,49 @@
     <title>Vue 게시판 SPA (CDN, Composition API)</title>
     <!-- Vue 3 CDN: 전역 변수 Vue 제공 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- 공통 CSS -->
+    <!-- 공통 CSS (네가 만든 vue.css 사용) -->
     <link rel="stylesheet" href="/assets/css/vue.css" />
   </head>
   <body>
     <div id="app">
       <h1>Vue + 서블릿 게시판 SPA (Composition API)</h1>
 
-      <!-- 로그인 / 로그아웃 영역 -->
+      <!-- 로그인 / 로그아웃 / 회원가입 -->
       <div class="card">
-        <h2>로그인</h2>
+        <h2>로그인 / 회원가입</h2>
 
-        <!-- loginUserId 가 없을 때(=로그인 전) 로그인 폼 -->
-        <div v-if="!loginUserId">
-          <!-- @submit.prevent : 새로고침 막고 login()만 실행 -->
-          <form @submit.prevent="login">
+        <!-- 이미 로그인한 경우 -->
+        <div v-if="loginUserId" class="row">
+          <div>안녕하세요, <strong>{{ loginUserId }}</strong> 님 👋</div>
+          <button class="secondary" @click="logout">로그아웃</button>
+        </div>
+
+        <!-- 로그인 안 된 경우: 로그인/회원가입 탭 -->
+        <div v-else>
+          <!-- 모드 전환 버튼 -->
+          <div class="row" style="margin-bottom: 12px; gap: 6px">
+            <button
+              type="button"
+              :class="['secondary', { primary: authMode === 'login' }]"
+              @click="authMode = 'login'"
+            >
+              로그인
+            </button>
+            <button
+              type="button"
+              :class="['secondary', { primary: authMode === 'register' }]"
+              @click="authMode = 'register'"
+            >
+              회원가입
+            </button>
+          </div>
+
+          <!-- 로그인 폼 -->
+          <form v-if="authMode === 'login'" @submit.prevent="login">
             <div class="row" style="margin-bottom: 8px">
               <div>
                 <label>
                   아이디
-                  <!-- reactive 객체 loginForm.id 와 양방향 바인딩 -->
                   <input v-model="loginForm.id" placeholder="아이디" />
                 </label>
               </div>
@@ -39,7 +62,6 @@
                 </label>
               </div>
               <div>
-                <!-- loading(ref) 값이 true 이면 비활성화 -->
                 <button class="primary" type="submit" :disabled="loading">
                   로그인
                 </button>
@@ -48,16 +70,55 @@
             <div class="error" v-if="loginError">{{ loginError }}</div>
             <div class="muted">
               ※ 예제용으로 API에 로그인만 요청하고, 클라이언트에서
-              로컬스토리지로 로그인 상태를 기억합니다.
+              localStorage로 로그인 상태를 기억합니다.
             </div>
           </form>
-        </div>
 
-        <!-- loginUserId 가 있을 때(=로그인 후) -->
-        <div v-else class="row">
-          <!-- 템플릿에서는 ref가 자동 언래핑되어 .value 안 써도 됨 -->
-          <div>안녕하세요, <strong>{{ loginUserId }}</strong> 님 👋</div>
-          <button class="secondary" @click="logout">로그아웃</button>
+          <!-- 회원가입 폼 -->
+          <form v-else @submit.prevent="register">
+            <div style="margin-bottom: 8px">
+              <label>
+                아이디 (최대 20자)
+                <input
+                  v-model="registerForm.id"
+                  placeholder="아이디"
+                  maxlength="20"
+                />
+              </label>
+            </div>
+            <div style="margin-bottom: 8px">
+              <label>
+                비밀번호
+                <input
+                  v-model="registerForm.password"
+                  type="password"
+                  placeholder="비밀번호"
+                />
+              </label>
+            </div>
+            <div style="margin-bottom: 8px">
+              <label>
+                이메일 (최대 45자)
+                <input
+                  v-model="registerForm.email"
+                  type="email"
+                  placeholder="이메일"
+                  maxlength="45"
+                />
+              </label>
+            </div>
+
+            <button class="primary" type="submit" :disabled="loading">
+              회원가입
+            </button>
+
+            <div class="error" v-if="registerError" style="margin-top: 6px">
+              {{ registerError }}
+            </div>
+            <div class="success" v-if="registerSuccess" style="margin-top: 6px">
+              {{ registerSuccess }}
+            </div>
+          </form>
         </div>
       </div>
 
@@ -85,14 +146,33 @@
             </tr>
           </thead>
           <tbody>
-            <!-- boards 배열이 비어 있으면 안내 문구 -->
             <tr v-if="boards.length === 0">
               <td colspan="3" class="muted">게시글이 없습니다.</td>
             </tr>
-            <!-- boards(ref 배열) 순회 -->
+
             <tr v-for="b in boards" :key="b.idx">
               <td>{{ b.idx }}</td>
-              <td>{{ b.title || '(제목 없음)' }}</td>
+              <td>
+                <div>{{ b.title || '(제목 없음)' }}</div>
+
+                <!-- 내용 미리보기 (최대 5줄) -->
+                <div
+                  class="muted small content-preview"
+                  :class="{ expanded: expandedBoardId === b.idx }"
+                >
+                  {{ b.content || '(내용 없음)' }}
+                </div>
+
+                <!-- 더보기 / 접기 버튼 -->
+                <button
+                  v-if="b.content && b.content.length > 120"
+                  type="button"
+                  class="link-button"
+                  @click="toggleContent(b.idx)"
+                >
+                  {{ expandedBoardId === b.idx ? '접기' : '더보기' }}
+                </button>
+              </td>
               <td class="right">
                 <button
                   class="secondary"
@@ -159,6 +239,7 @@
                 v-model="boardForm.title"
                 placeholder="제목을 입력하세요"
                 style="width: 100%; box-sizing: border-box"
+                maxlength="45"
               />
             </label>
           </div>

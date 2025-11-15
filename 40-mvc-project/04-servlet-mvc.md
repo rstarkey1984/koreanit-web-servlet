@@ -492,17 +492,30 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             /**
             * 게시글 등록
             */
-            public boolean insert(Board b) throws SQLException {
+            public Integer insert(Board b) throws SQLException {
 
                 String sql = "INSERT INTO board (title, content) VALUES (?, ?)"; // INSERT SQL
 
                 try (Connection con = ds.getConnection(); // 커넥션 얻기
-                        PreparedStatement ps = con.prepareStatement(sql)) { // SQL 준비
+                        PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) { // SQL 준비
 
                     ps.setString(1, b.title); // 첫 번째 ? = title
                     ps.setString(2, b.content); // 두 번째 ? = content
 
-                    return ps.executeUpdate() == 1; // INSERT 실행 → 1행 영향을 받으면 true
+                    int affected = ps.executeUpdate(); // INSERT 실행
+
+                    if (affected == 0) {
+                        return null; // INSERT 실패
+                    }
+
+                    // 생성된 PK(idx) 가져오기
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        if (rs.next()) {
+                            return rs.getInt(1); // PK (AUTO_INCREMENT)
+                        }
+                    }
+
+                    return null; // 혹시 키가 없으면 null
                 }
             }
 
@@ -560,7 +573,6 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             }
 
         }
-
         ```
 
         - `PreparedStatement`
@@ -646,10 +658,54 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
     ```java
     package localhost.myapp.dto;
 
-    public class ServiceResult {
+    /**
+    * 공통 서비스/API 응답 DTO
+    *
+    * - success : 성공 여부
+    * - message : 메시지 (성공/실패 이유)
+    * - data : 실제 담을 데이터 (제네릭)
+    *
+    * 예)
+    * ServiceResult<Integer> : 새로 생성된 게시글 idx
+    * ServiceResult<Board> : 게시글 한 건
+    * ServiceResult<List<Board>> : 게시글 목록
+    */
+    public class ServiceResult<T> {
+
+        /** 요청 성공 여부 */
         public boolean success;
+
+        /** 메시지 (성공/실패 이유) */
         public String message;
+
+        /** 실제 데이터 (없으면 null) */
+        public T data;
+
+        public ServiceResult() {
+        }
+
+        public ServiceResult(boolean success, String message, T data) {
+            this.success = success;
+            this.message = message;
+            this.data = data;
+        }
+
+        /** ✔ 성공 (데이터만 있는 버전) */
+        public static <T> ServiceResult<T> ok(T data) {
+            return new ServiceResult<>(true, null, data);
+        }
+
+        /** ✔ 성공 (메시지 + 데이터) */
+        public static <T> ServiceResult<T> ok(String message, T data) {
+            return new ServiceResult<>(true, message, data);
+        }
+
+        /** ❌ 실패 (메시지만, data=null) */
+        public static <T> ServiceResult<T> fail(String message) {
+            return new ServiceResult<>(false, message, null);
+        }
     }
+
     ```
 
 - `UserService.java`
@@ -667,9 +723,6 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
     * - 중복 확인
     * - 예외 처리 일관화
     * - DAO 호출 결과를 ServiceResult로 감싸 일관된 응답 제공
-    *
-    * ✔ Create/Update/Delete 결과는 ServiceResult 로 반환해
-    * Controller 가 성공/실패 메시지를 쉽게 처리하도록 한다.
     */
     public class UserService {
         private final UserDao dao; // 데이터베이스 접근 객체(DAO)
@@ -692,14 +745,14 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         * - ServiceResult 로 성공/실패 메시지 반환
         * ------------------------------
         */
-        public ServiceResult register(String id, String password, String email) {
+        public ServiceResult<Void> register(String id, String password, String email) {
             try {
                 // 1) 기본 형식 검증
                 validateRegister(id, password, email);
 
                 // 2) 아이디 중복 검사
                 if (dao.existsById(id) != null) {
-                    return fail("이미 존재하는 아이디입니다.");
+                    return ServiceResult.fail("이미 존재하는 아이디입니다.");
                 }
 
                 // 3) User 객체 생성
@@ -711,16 +764,18 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 // 4) DB 저장
                 boolean ok = dao.insert(u);
 
-                // 5) 결과 반환
-                return ok ? ok("회원가입 성공") : fail("회원가입 실패");
+                // 5) 결과 반환 (data는 사용하지 않으므로 null)
+                return ok
+                        ? ServiceResult.ok("회원가입 성공", null)
+                        : ServiceResult.fail("회원가입 실패");
 
             } catch (IllegalArgumentException e) {
                 // validateRegister()에서 발생된 예외 처리
-                return fail(e.getMessage());
+                return ServiceResult.fail(e.getMessage());
 
             } catch (SQLException e) {
                 // DB 관련 예외 처리
-                return fail("데이터베이스 오류: " + e.getMessage());
+                return ServiceResult.fail("데이터베이스 오류: " + e.getMessage());
             }
         }
 
@@ -732,22 +787,25 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         * - 성공/실패를 ServiceResult 로 반환
         * ------------------------------
         */
-        public ServiceResult login(String id, String password) {
+        public ServiceResult<Void> login(String id, String password) {
             try {
                 // 필수 입력값 체크
                 if (id == null || id.trim().isEmpty() ||
                         password == null || password.isEmpty()) {
 
-                    return fail("아이디/비밀번호를 입력해 주세요.");
+                    return ServiceResult.fail("아이디/비밀번호를 입력해 주세요.");
                 }
 
                 // DAO에서 비밀번호 SHA2 비교
                 boolean ok = dao.login(id.trim(), password);
 
-                return ok ? ok("로그인 성공") : fail("로그인 실패");
+                // data는 사용하지 않으므로 null
+                return ok
+                        ? ServiceResult.ok("로그인 성공", null)
+                        : ServiceResult.fail("로그인 실패");
 
             } catch (SQLException e) {
-                return fail("데이터베이스 오류: " + e.getMessage());
+                return ServiceResult.fail("데이터베이스 오류: " + e.getMessage());
             }
         }
 
@@ -769,175 +827,143 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 throw new IllegalArgumentException("올바른 이메일을 입력해 주세요.");
             }
         }
-
-        /** 성공 응답 생성 */
-        private ServiceResult ok(String msg) {
-            ServiceResult r = new ServiceResult();
-            r.success = true;
-            r.message = msg;
-            return r;
-        }
-
-        /** 실패 응답 생성 */
-        private ServiceResult fail(String msg) {
-            ServiceResult r = new ServiceResult();
-            r.success = false;
-            r.message = msg;
-            return r;
-        }
     }
     ```
 
 - `BoardService.java`
     ```java
-    package localhost.myapp.board; // BoardService 클래스가 속한 패키지 선언
+    package localhost.myapp.board;
 
-    import localhost.myapp.dto.ServiceResult; // 서비스 성공/실패 정보를 담는 DTO(ServiceResult) import
-    import java.sql.SQLException; // DAO에서 발생하는 SQL 예외 처리용
-    import java.util.List; // List<Board> 반환을 위해 import
+    import localhost.myapp.dto.ServiceResult;
+    import java.sql.SQLException;
+    import java.util.List;
 
-    /**
-    * 비즈니스 규칙/검증을 담당하는 서비스 레이어.
-    * - Controller(Servlet) ↔ Service ↔ DAO 구조
-    * - Read: 원본 타입 반환(List<Board>, Board)
-    * - Write(C/U/D): ServiceResult 반환(일관된 성공/실패 + 메시지)
-    */
-    public class BoardService { // BoardService 클래스 정의 시작
-        private final BoardDao dao; // DB 접근을 담당하는 DAO 의존성
+    public class BoardService {
 
-        public BoardService() { // 기본 생성자
-            this.dao = new BoardDao(); // 기본적으로 내부에서 BoardDao를 직접 생성
+        private final BoardDao dao;
+
+        public BoardService() {
+            this.dao = new BoardDao();
         }
 
-        // 테스트/주입용 생성자 (DI 테스트 가능)
-        public BoardService(BoardDao dao) { // 외부에서 DAO를 주입할 수 있는 생성자
-            this.dao = dao; // 주입받은 DAO 저장
+        public BoardService(BoardDao dao) {
+            this.dao = dao;
         }
 
-        /** 목록 페이징 (Read는 데이터 그대로 반환) */
-        public List<Board> list(int page, int size) throws SQLException { // 게시판 목록을 페이징하여 반환하는 메서드
-            if (page < 1) // page가 1보다 작으면
-                page = 1; // 기본값 1로 보정
-            if (size < 1) // size가 1보다 작으면
-                size = 10; // 기본값 10으로 보정
-            return dao.findAll(page, size); // DAO에게 위임하여 목록 조회
+        /** 목록 페이징 (Read는 그대로 반환) */
+        public List<Board> list(int page, int size) throws SQLException {
+            if (page < 1)
+                page = 1;
+            if (size < 1)
+                size = 10;
+            return dao.findAll(page, size);
         }
 
         /** 전체 개수 */
-        public int count() throws SQLException { // 전체 게시글 개수 반환
-            return dao.countAll(); // DAO에서 countAll 호출
+        public int count() throws SQLException {
+            return dao.countAll();
         }
 
         /** 단건 조회 (없으면 null) */
-        public Board get(int idx) throws SQLException { // 특정 게시글 1건 조회
-            if (idx <= 0) // idx가 유효하지 않으면
-                return null; // null 반환
-            return dao.findById(idx); // DAO에게 조회 위임
+        public Board get(int idx) throws SQLException {
+            if (idx <= 0)
+                return null;
+            return dao.findById(idx);
         }
 
-        /** 생성 (ServiceResult로 성공/실패 메시지 반환) */
-        public ServiceResult create(String title, String content) { // 게시글 생성 서비스
+        /** 생성 : 성공 시 새 idx 가 data로 들어감 */
+        public ServiceResult<Integer> create(String title, String content) {
             try {
-                validate(title, content); // 제목/내용 검증 (공백/길이 검사)
+                validate(title, content);
 
-                Board b = new Board(); // 새 Board 객체 생성
-                b.title = title.trim(); // 공백 제거 후 title 저장
-                b.content = content.trim(); // 공백 제거 후 content 저장
+                Board b = new Board();
+                b.title = title.trim();
+                b.content = content.trim();
 
-                boolean ok = dao.insert(b); // DAO에게 INSERT 요청
+                Integer newId = dao.insert(b);
 
-                return ok ? ok("게시글이 등록되었습니다.") // 성공 시 메시지 포함 성공 응답
-                        : fail("게시글 등록에 실패했습니다."); // 실패 시 메시지 포함 실패 응답
+                if (newId == null) {
+                    return ServiceResult.fail("게시글 등록에 실패했습니다.");
+                }
 
-            } catch (IllegalArgumentException e) { // 검증(validate) 실패 시
-                return fail(e.getMessage()); // 에러 메시지를 담아 실패 응답 반환
+                return ServiceResult.ok("게시글이 등록되었습니다.", newId);
 
-            } catch (SQLException e) { // DB 오류 발생 시
-                return fail("데이터베이스 오류: " + e.getMessage()); // DB 오류 메시지 반환
+            } catch (IllegalArgumentException e) {
+                return ServiceResult.fail(e.getMessage());
+
+            } catch (SQLException e) {
+                return ServiceResult.fail("데이터베이스 오류: " + e.getMessage());
             }
         }
 
         /** 수정 */
-        public ServiceResult update(int idx, String title, String content) { // 게시글 수정 서비스
+        public ServiceResult<Void> update(int idx, String title, String content) {
             try {
-                if (idx <= 0) // 잘못된 idx라면
-                    return fail("잘못된 게시글 번호입니다."); // 즉시 실패 처리
-
-                validate(title, content); // 제목/내용 검증
-
-                Board b = new Board(); // 수정할 Board 객체 생성
-                b.idx = idx; // 수정 대상 게시글 번호
-                b.title = title.trim(); // 공백 제거 후 제목 저장
-                b.content = content.trim(); // 공백 제거 후 내용 저장
-
-                boolean ok = dao.update(b); // DAO에게 UPDATE 요청
-
-                if (!ok) { // ★ UPDATE는 실행됐지만, 수정된 행이 없을 때 (idx에 해당 게시물이 없는 경우)
-                    return fail("게시물이 존재하지 않습니다."); // ★ 존재하지 않는다는 메시지로 응답
+                if (idx <= 0) {
+                    return ServiceResult.fail("잘못된 게시글 번호입니다.");
                 }
 
-                return ok("게시글이 수정되었습니다."); // ★ 여기까지 왔으면 정상 수정 성공
+                validate(title, content);
 
-            } catch (IllegalArgumentException e) { // validate()에서 발생
-                return fail(e.getMessage()); // 해당 메시지 전달
+                Board b = new Board();
+                b.idx = idx;
+                b.title = title.trim();
+                b.content = content.trim();
 
-            } catch (SQLException e) { // DAO(DB)에서 발생
-                return fail("데이터베이스 오류: " + e.getMessage()); // DB 오류 메시지 반환
+                boolean ok = dao.update(b);
+
+                if (!ok) {
+                    return ServiceResult.fail("게시물이 존재하지 않습니다.");
+                }
+
+                return ServiceResult.ok("게시글이 수정되었습니다.", null);
+
+            } catch (IllegalArgumentException e) {
+                return ServiceResult.fail(e.getMessage());
+
+            } catch (SQLException e) {
+                return ServiceResult.fail("데이터베이스 오류: " + e.getMessage());
             }
         }
 
         /** 삭제 */
-        public ServiceResult delete(int idx) { // 게시글 삭제 서비스
+        public ServiceResult<Void> delete(int idx) {
             try {
-                if (idx <= 0) // 삭제할 idx가 잘못된 값이면
-                    return fail("잘못된 게시글 번호입니다."); // 실패 처리
-
-                boolean ok = dao.delete(idx); // DAO에게 DELETE 수행 요청
-
-                if (!ok) { // DELETE 는 실행됐지만, 실제로 삭제된 행이 없을 때
-                    return fail("게시물이 존재하지 않습니다."); // 없는 게시글 번호로 삭제 요청한 상황
+                if (idx <= 0) {
+                    return ServiceResult.fail("잘못된 게시글 번호입니다.");
                 }
 
-                return ok("게시글이 삭제되었습니다."); // ★ 정상적으로 삭제된 경우
-            } catch (SQLException e) { // DB 오류 처리
-                return fail("데이터베이스 오류: " + e.getMessage()); // DB 오류 메시지
+                boolean ok = dao.delete(idx);
+
+                if (!ok) {
+                    return ServiceResult.fail("게시물이 존재하지 않습니다.");
+                }
+
+                return ServiceResult.ok("게시글이 삭제되었습니다.", null);
+
+            } catch (SQLException e) {
+                return ServiceResult.fail("데이터베이스 오류: " + e.getMessage());
             }
         }
 
         /** 공통 검증 */
-        private void validate(String title, String content) { // 제목과 내용을 검증하는 내부 메서드
-            if (title == null || content == null) { // null 체크
-                throw new IllegalArgumentException("제목과 내용을 입력해야 합니다."); // 잘못된 입력이면 예외 발생
-            }
-
-            String t = title.trim(); // 앞뒤 공백 제거
-            String c = content.trim();
-
-            if (t.isEmpty() || c.isEmpty()) { // 빈 문자열 체크
+        private void validate(String title, String content) {
+            if (title == null || content == null) {
                 throw new IllegalArgumentException("제목과 내용을 입력해야 합니다.");
             }
 
-            if (t.length() > 45) { // 제목 길이 제한
+            String t = title.trim();
+            String c = content.trim();
+
+            if (t.isEmpty() || c.isEmpty()) {
+                throw new IllegalArgumentException("제목과 내용을 입력해야 합니다.");
+            }
+
+            if (t.length() > 45) {
                 throw new IllegalArgumentException("제목은 45자 이하로 입력해주세요.");
             }
         }
-
-        /** 내부 헬퍼: 성공 응답 */
-        private ServiceResult ok(String msg) { // 성공 결과를 만드는 내부 메서드
-            ServiceResult r = new ServiceResult(); // 새 ServiceResult 객체 생성
-            r.success = true; // 성공 여부 true
-            r.message = msg; // 성공 메시지 저장
-            return r; // 결과 반환
-        }
-
-        /** 내부 헬퍼: 실패 응답 */
-        private ServiceResult fail(String msg) { // 실패 결과를 만드는 내부 메서드
-            ServiceResult r = new ServiceResult(); // 새 ServiceResult 생성
-            r.success = false; // 성공 여부 false
-            r.message = msg; // 실패 메시지 저장
-            return r; // 결과 반환
-        }
-    } // BoardService 클래스 끝
+    }
     ```
 
 - `/ex/service.java` - Service 코드 테스트
@@ -950,6 +976,9 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         // 서비스 레이어: 비즈니스 로직(검증/처리)을 담당
         private final UserService userService = new UserService();
 
+        // Gson 인스턴스 재사용
+        private final Gson gson = new Gson();
+
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
@@ -960,11 +989,11 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             resp.setContentType("application/json; charset=UTF-8");
 
             // 3) 서비스 레이어 호출 (회원가입 로직 실행 예제)
-            //    ServiceResult는 성공/실패 여부와 메시지를 담는 DTO
-            ServiceResult r = userService.register("test", "test", "test@test.com");
+            // ServiceResult<Void> → data 는 null
+            ServiceResult<Void> r = userService.register("test1", "test1", "test@test.com");
 
             // 4) 응답 객체(ServiceResult)를 JSON 문자열로 변환
-            String json = new Gson().toJson(r);
+            String json = gson.toJson(r);
 
             // 5) JSON을 HTTP 응답으로 전송
             resp.getWriter().print(json);
@@ -1107,7 +1136,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 /** -------------------- 로그인 처리 -------------------- */
                 case "/login":
                     try {
-                        ServiceResult r = service.login(id, password);
+                        ServiceResult<Void> r = service.login(id, password);
 
                         if (r.success) {
                             // 로그인 성공 → 세션에 id 저장
@@ -1132,7 +1161,8 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                     String email = req.getParameter("email");
 
                     try {
-                        ServiceResult r = service.register(id, password, email);
+                        // 제네릭 타입 맞추기: ServiceResult<Void>
+                        ServiceResult<Void> r = service.register(id, password, email);
 
                         if (r.success) {
                             // 회원가입 성공 → 자동 로그인 비슷하게 세션에 id 저장
@@ -1158,7 +1188,6 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
         }
     }
-
     ```
 
 - `BoardController.java`
@@ -1394,7 +1423,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             String title = req.getParameter("title");
             String content = req.getParameter("content");
 
-            ServiceResult result = service.create(title, content);
+            ServiceResult<Integer> result = service.create(title, content);
 
             HttpSession session = req.getSession();
             String ctx = req.getContextPath();
@@ -1417,7 +1446,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             String title = req.getParameter("title");
             String content = req.getParameter("content");
 
-            ServiceResult result = service.update(idx, title, content);
+            ServiceResult<Void> result = service.update(idx, title, content);
 
             HttpSession session = req.getSession();
             String ctx = req.getContextPath();
@@ -1436,7 +1465,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 throws IOException {
 
             int idx = parseInt(req.getParameter("idx"), 0);
-            ServiceResult result = service.delete(idx);
+            ServiceResult<Void> result = service.delete(idx);
 
             HttpSession session = req.getSession();
             String ctx = req.getContextPath();
