@@ -34,19 +34,18 @@
 ### 4️⃣ MVC 구조 이해 + Servlet 구현 ( With MySQL )
 1. [MySQL 설치 및 설정](40-mvc-project/01-mysql-setup.md)
 
-2. [MVC (Model-View-Controller 패턴 소개)](40-mvc-project/02-what-is-mvc.md)
-3. [MVC 구조 익히기 (Servlet + Service 구현)](40-mvc-project/03-servlet-mvc.md))
-4. [Servlet API 로 CRUD 구현하기](40-mvc-project/04-servlet-api.md)
+2. [MySQL과 Java를 연결하는 방법](40-mvc-project/02-mysql-java.md)
+3. [MVC (Model-View-Controller 패턴 소개)](40-mvc-project/03-what-is-mvc.md)
+4. [MVC 구조 익히기 (Servlet + Service 구현)](40-mvc-project/04-servlet-mvc.md))
+5. [Servlet API 로 CRUD 구현하기](40-mvc-project/05-servlet-api.md)
 
 ### 5️⃣ Vue 프론트엔드 + Servlet API 백엔드
 
-1. CDN 방식으로 바로 화면에 Vue 띄우기
+1. [CDN 방식으로 바로 화면에 Vue 띄우기](50-vue-project/01-vue-intro.md)
 
-2. Vue 프로젝트 초기 설정 및 개발 환경 구성
+2. Axios 또는 Fetch를 이용한 API 연동 구조 잡기
 
-3. Axios 또는 Fetch를 이용한 API 연동 구조 잡기
-
-4. 컴포넌트 기반 UI 개발 및 API 데이터 렌더링
+3. 컴포넌트 기반 UI 개발 및 API 데이터 렌더링
 
 
 ## 🎯 학습 목표
@@ -64,4 +63,4 @@
 | 개발환경 | WSL2 + Ubuntu 24.04 LTS |
 | 필수 도구 | JDK 17 이상, Nginx, Tomcat 10, MySQL 8 |
 | 권장 에디터 | Visual Studio Code |
-| 테스트 도구 | Insomnia 또는 curl |
+| 테스트 도구 | curl 또는 VSCode REST Client  |

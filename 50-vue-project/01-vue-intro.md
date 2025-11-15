@@ -20,7 +20,7 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 1. 바닐라 `Javascript`
     > DOM을 직접 찾아서 직접 수정해야 함.
 
-    `/html/1.html`
+    `/vue/1.html`
     ```html
     <!DOCTYPE html>
     <html lang="ko">
@@ -34,18 +34,19 @@ CDN 방식으로 바로 화면에 Vue 띄우기
         <button id="btn">+1</button>
 
         <script>
-        const countEl = document.getElementById("count");
-        const btn = document.getElementById("btn");
+            const countEl = document.getElementById("count");
+            const btn = document.getElementById("btn");
 
-        let count = 0;
+            let count = 0;
 
-        btn.addEventListener("click", () => {
-            count++;
-            countEl.textContent = count; // ← 화면 직접 수정
-        });
+            btn.addEventListener("click", () => {
+                count++;
+                countEl.textContent = count; // ← 화면 직접 수정
+            });
         </script>
     </body>
     </html>
+
     ```
 
     1. DOM 요소를 직접 찾는다
@@ -57,41 +58,34 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 2. Vue 버전 (CDN 방식)
     > "데이터만 바꾸면 화면이 자동 업데이트" 됨.
 
-    `/vue/1.html`
+    `/vue/2.html`
     ```html
-    <!DOCTYPE html>
+   <!DOCTYPE html>
     <html lang="ko">
     <head>
         <meta charset="UTF-8" />
-        <title>Vue 카운터</title>
-        <!-- CDN: Vue 3 -->
+        <title>Vue CDN ref 테스트</title>
         <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     </head>
     <body style="text-align: center">
-        <div id="app" style="text-align: center">
         <h1>카운터 (Vue)</h1>
-        <!-- 화면은 "데이터"에 자동으로 바인딩 -->
-        <p>Count: {{ count }}</p>
-        <button @click="increment">+1</button>
+        <div id="app">
+        <p>{{ count }}</p>
+        <button @click="count++">+1</button>
         </div>
 
         <script>
-        const { createApp } = Vue;
+            const { createApp, ref } = Vue;
 
-        createApp({
-            // 상태(state)는 data()에서 반환
-            data() {
-                return {
-                    count: 0,
-                };
-            },
-            // 동작(method)는 methods에 정의
-            methods: {
-                increment() {
-                    this.count = this.count + 1; // 상태만 바꾸면, 화면은 자동으로 갱신됨
+            createApp({
+                setup() { 
+
+                    const count = ref(0); 
+                    
+                    return { count }; 
+
                 },
-            },
-        }).mount("#app");
+            }).mount("#app");
         </script>
     </body>
     </html>
@@ -103,49 +97,520 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 
     3. 코드가 훨씬 짧고 직관적임
 
+## 3. createApp() 기본 구조
+> `createApp()`은 `HTML`과 `Vue` 코드를 연결해주는 Vue 프로그램의 시작점 이다.
 
+- `createApp` 구조 시각화 (중요)
+    ```js
+    createApp({ // 1. Vue 앱 만들기
+        setup() { // 2. 상태/함수 정의
+
+            const count = ref(0); // 상태 정의
+
+            // 3. mount 하는 곳에 전달 (return) 
+            return { count }              
+
+        }
+    }).mount('#app') 
+    // 4. mount('#app') 으로 HTML에서 id="app"인 요소와 연결. 
+    // 즉 <div id="app">...</div> 안은 Vue 가 관리하는 영역이 됩니다. 
+    // return 으로 넘겨준 값들을 Vue 가 관리하는 영역에서 사용가능. 예) {{ count }}
+    ```
+
+    ① Vue 앱 만들기
+    ② 상태/함수 정의
+    ③ 템플릿에 전달 (return)
+    ④ mount()로 HTML과 연결
+
+    - 템플릿이란?
+
+        > 템플릿 = HTML 코드(중에서 Vue가 관리하는 부분)
+        ```html
+        <div id="app">
+            ...
+            <p>{{ count }}</p>
+            ...
+        </div>
+        ```
+
+        
     
 
-## 3. Vue의 반응성(Reactivity)이란?
-> 데이터를 변경하면 UI가 자동으로 업데이트되는 기능.
+## 4. Vue 반응성(Reactivity) 를 제대로 이해하기
 
-- 바닐라 JS
-    ```
-    count++
-    document.getElementById('count').textContent = count
-    ```
 
-- Vue는?
-    ```
-    count.value++
-    ```
-    → UI 자동 업데이트
+1. 반응성(Reactivity)이란?
 
-    즉, "데이터를 바꾸면 Vue가 알아서 화면 그려준다" 는 것.
+    > 데이터를 변경하면 UI가 자동으로 업데이트되는 기능.
 
-    이 핵심을 가능하게 해주는 게 `ref()` / `reactive()` 같은 반응형 API.
+    프레임워크가 “데이터 변화 → 화면 갱신”을 자동으로 해줌.
 
-    `ref()`, `reactivity`(반응성) 개념만 제대로 이해하면 `Vue`의 60%는 이해했다고 보면 됨.
+    우리는 DOM 조작(document.getElementById, innerHTML 등)을 할 필요 없음.
+
+    - 바닐라 JS
+
+        ```
+        count++
+        document.getElementById('count').textContent = count
+        ```
+
+    - Vue
+        ```
+        count.value++
+        ```
+        → Vue가 변경을 감지
+
+        → 자동으로 화면 업데이트
+
+
+2. 왜 `ref()` / `reactive()` 는 무엇인가?
+
+    > Vue의 “반응형 상태(reactive state)”를 만드는 함수들
+
+    Vue에서는 화면이 자동으로 업데이트되게 만들려면
+    데이터를 “반응형(Reactive)”으로 만들어야 한다.
+
+    그때 사용하는 대표 함수가 바로:
+
+    | 함수             | 한글 설명              | 특징                                 |
+    | -------------- | ------------------ | ---------------------------------- |
+    | **ref()**      | 단일 값 반응형 상태 생성 함수  | number, string 같은 **원시값**          |
+    | **reactive()** | 객체/배열 반응형 상태 생성 함수 | 객체 전체를 **프록시(Proxy)로 감싸서** 반응형 만들기 |
+
 
     ### 1. `ref()` 는 무엇인가?
-    > 하나의 값(value)을 반응형으로 감싸는 박스(Box). 즉, `Vue`가 감시할 수 있도록 값을 넣어놓은 객체.
-    - 예:
-        ```javascript
-        import { ref } from 'vue'
+    > "반응형 변수"를 만드는 함수
 
-        const count = ref(0)
-        ```
-    - 이 때 count는 그냥 숫자가 아니다.
+    - 한 개 값(count, message, isOpen) 같은 "단일 데이터"를 반응형으로 만들 때 사용
+    - 값을 꺼낼 때 .value가 필요함
 
-        ```javascript
-        count = { value: 0 } // 를 가진 반응형 객체
-        ```
-        - count 자체는 객체
+        - 예시) 이 때 count는 그냥 숫자 0 이 아니다.
+            ```javascript
+            const count = ref(0); // 숫자 0 을 가진 반응형 객체
+            ```
+        - 이걸 실제 내부 구조로 표현하면 아래와 같음
 
-        - 실제 값은 count.value 안에 들어 있음
-        - 그래서 JS 코드에서는 count.value++ 라고 해야 함
+            ```javascript
+            count = { value: 0 } // 숫자 0 을 가진 반응형 객체
+            ```
 
-    - 템플릿( {{ count }} )에서는 Vue가 알아서 .value를 붙여줌
-        ```html
-        <p>{{ count }}</p> --> p( null, toDisplayString(count.value) )
-        ```
+        - Javascript 코드에서 값 변경
+            ```js
+            count.value++;   // 반드시 .value 필요
+            ```
+
+        - 템플릿(Vue가 관리하는 영역에서 쓸때는) 에서 값 변경 ( Vue가 자동으로 .value를 언래핑 ) 
+            ```html
+            <button @click="count++">+1</button>
+            ```
+        
+        - HTML에서 표시할때는
+            ```html
+            <p>{{ count }}</p>
+            ```
+        
+
+    ### 2. `reactive()` 는 무엇인가?
+    > "반응형 객체"를 만드는 함수
+
+    - 여러 속성을 가진 객체나 배열을 반응형으로 만들 때 사용
+
+    - `.value` 필요 없음
+        - 예시)
+
+            ```js
+            const user = reactive({
+                name: "Tom",
+                age: 20
+            })
+            user.age++
+            ```
+
+        - 내부적으로는 Proxy로 감싸져 있음:
+            ```js
+            user.name = 'Jane';  
+            user.age++;
+            ```
+            → 모두 UI가 자동으로 업데이트됨
+
+        - 템플릿에서도 그대로 사용
+            ```html
+            <p>{{ user.name }}</p>
+            ```
+
+    ## 요약하면
+    > Vue 공식 문서에서는 둘을 “`Reactivity API`”라고 부른다.
+
+    1. `ref()` = 단일 값 `반응형 변수`를 만드는 함수
+
+    2. `reactive()` = 객체/배열 `반응형 객체`를 만드는 함수 
+
+## 5. Vue 반응성(ref, reactive) 완전 이해
+
+`/vue/3.html`
+```html
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vue 반응성(ref, reactive) 완전 이해</title>
+
+    <!-- Vue 3 CDN 불러오기 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <style>
+      /* 기본 스타일 */
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        padding: 20px;
+      }
+      .box {
+        border: 1px solid #ccc;
+        padding: 12px;
+        border-radius: 8px;
+        background: #f7faff;
+        margin: 20px 0;
+      }
+      h2 {
+        margin-top: 40px;
+      }
+      pre {
+        background: #2d2d2d;
+        color: #ddd;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+      }
+      button {
+        padding: 8px 14px;
+        font-size: 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: none;
+        background: #2563eb;
+        color: white;
+      }
+      button:hover {
+        background: #1d4ed8;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Vue의 반응성(Reactivity) — ref() & reactive()</h1>
+
+    <p>
+      Vue는 "데이터가 바뀌면 UI가 자동으로 업데이트"되는
+      <b>반응성(Reactivity)</b> 기능을 제공합니다.<br />
+      아래의 두 예제를 실행해보면 <b>ref()</b>와 <b>reactive()</b>가 어떤
+      방식으로 값을 추적하는지 쉽게 이해할 수 있습니다.
+    </p>
+
+    <hr />
+
+    <!-- ----------------------------------------
+         1. ref() 예제
+         ---------------------------------------- -->
+    <h2>1. ref() — 단일 값을 감싸는 반응형 박스</h2>
+
+    <!-- ref() 앱이 적용될 영역 -->
+    <div id="refApp" class="box">
+      <h3>📦 ref() 시각화</h3>
+
+      <!-- ref가 내부적으로 어떻게 보이는지 설명 -->
+      <pre>
+count = ref(0)
+
+실제 내부 구조:
+count = {
+  value: 0   ← 진짜 값은 여기 들어있음!
+}
+</pre
+      >
+
+      <!-- ref는 템플릿 안에서는 .value 없이 자동으로 꺼내서 렌더링됨 -->
+      <p>현재 값: <b>{{ count }}</b></p>
+
+      <!-- ref 값 증가 -->
+      <button @click="count++">+1 증가</button>
+    </div>
+
+    <hr />
+
+    <!-- ----------------------------------------
+         2. reactive() 예제
+         ---------------------------------------- -->
+    <h2>2. reactive() — 객체를 통째로 반응형으로</h2>
+
+    <!-- reactive() 앱이 적용될 영역 -->
+    <div id="reactiveApp" class="box">
+      <h3>🧰 reactive() 시각화</h3>
+
+      <!-- reactive가 Proxy 객체임을 설명 -->
+      <pre>
+user = reactive({
+  name: "Tom",
+  age: 30
+})
+
+내부 구조:
+Proxy 객체로 감싸져서 속성 변화를 자동 감지!
+</pre
+      >
+
+      <!-- reactive는 .value 없이 바로 속성 접근 -->
+      <p>
+        이름: <b>{{ user.name }}</b><br />
+        나이: <b>{{ user.age }}</b>
+      </p>
+
+      <!-- reactive 객체 속성 변경 -->
+      <button @click="user.age++">나이 +1</button>
+      <button @click="user.name = 'Jane'">이름 변경 (Tom → Jane)</button>
+    </div>
+
+    <hr />
+
+    <!-- 요약 박스 -->
+    <h2>3. 정리해보자</h2>
+
+    <div class="box">
+      <ul>
+        <li><b>ref()</b> → 숫자·문자 같은 '단일 값'을 감싸 반응형으로 만듦</li>
+        <li><b>reactive()</b> → 여러 속성을 가진 '객체 전체를' 반응형 처리</li>
+        <li>ref는 <code>.value</code> 안에 실제 값이 저장됨</li>
+        <li>reactive는 Proxy라서 <code>user.name</code> 처럼 바로 접근</li>
+        <li>
+          템플릿에서는 ref도 <code>.value</code> 없이 {{ count }}로 접근 가능
+        </li>
+      </ul>
+    </div>
+
+    <!-- ----------------------------------------
+         Vue 코드 (refApp, reactiveApp 각각 따로 mount)
+         ---------------------------------------- -->
+    <script>
+      // #1 ref() 예제
+      // - ref(0) : "count" 값을 반응형 변수로 만듦
+      const { createApp, ref, reactive } = Vue;
+
+      createApp({
+        setup() {
+          const count = ref(0); // ref는 value 속성 안에 실제 값이 들어감
+          return { count }; // 템플릿에서 count 사용 가능
+        },
+      }).mount("#refApp");
+
+      // #2 reactive() 예제
+      // - 객체 전체를 Proxy로 감싸서 속성 변화를 추적함
+      createApp({
+        setup() {
+          const user = reactive({
+            name: "Tom",
+            age: 30,
+          });
+          return { user }; // 템플릿에서 user.name 으로 접근 가능
+        },
+      }).mount("#reactiveApp");
+    </script>
+  </body>
+</html>
+```
+
+
+## 6. 이벤트 핸들링
+> 이벤트 핸들링 (@click, @input …)
+
+Vue에서는 HTML 이벤트를 @이벤트명 으로 연결한다.
+| JavaScript                           | Vue                    |
+| ------------------------------------ | ---------------------- |
+| `button.addEventListener("click", fn)` | <button `@click="fn"`> |
+
+### 가장 자주 쓰는 이벤트
+
+- `@click` : 버튼 클릭
+
+- `@input` : 입력이 바뀔 때마다 바로 실행 (실시간)
+
+- `@change` : focus를 잃거나 Enter 쳤을 때 실행
+
+- `@keyup` : 키보드를 눌렀다가 뗄 때 실행
+
+
+### 이벤트 핸들링 예제 ( @input, @change, @keyup )
+`/vue/4.html`
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <style>
+      body {
+        font-family: Arial;
+        padding: 20px;
+      }
+      .box {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+        background: #f8faff;
+      }
+      input {
+        padding: 8px;
+        font-size: 16px;
+        width: 250px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Vue 이벤트 실습 — @input / @change / @keyup 차이</h1>
+
+    <div id="app">
+      <!-- @input -->
+      <div class="box">
+        <h3>1. @input — 입력할 때마다 즉시 실행</h3>
+        <input placeholder="입력해보세요" @input="onInput" />
+        <p>이벤트 발생: <b>{{ inputMsg }}</b></p>
+      </div>
+
+      <!-- @change -->
+      <div class="box">
+        <h3>2. @change — 엔터 or 다른 곳 클릭해야 실행</h3>
+        <input placeholder="입력한 후 엔터 또는 밖 클릭" @change="onChange" />
+        <p>이벤트 발생: <b>{{ changeMsg }}</b></p>
+      </div>
+
+      <!-- @keyup -->
+      <div class="box">
+        <h3>3. @keyup — 키를 눌렀다가 뗄 때 실행</h3>
+        <input placeholder="키보드 입력해보세요" @keyup="onKeyup" />
+        <p>이벤트 발생: <b>{{ keyupMsg }}</b></p>
+      </div>
+    </div>
+
+    <script>
+      const { createApp, ref } = Vue;
+
+      const app = createApp({
+        setup() {
+          const inputMsg = ref("");
+          const changeMsg = ref("");
+          const keyupMsg = ref("");
+
+          const onInput = (e) => {
+            inputMsg.value = "입력 중: " + e.target.value;
+          };
+
+          const onChange = (e) => {
+            changeMsg.value = "변경됨: " + e.target.value;
+          };
+
+          const onKeyup = (e) => {
+            keyupMsg.value = "키업: " + e.key + " (값: " + e.target.value + ")";
+          };
+
+          return { inputMsg, changeMsg, keyupMsg, onInput, onChange, onKeyup };
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
+```
+
+
+## 7. v-model
+> v-model은 입력창(input, textarea, select)에 들어오는 값을 `ref` 변수와 “자동으로 양방향 연결”해주는 Vue 기능이다.
+
+- 입력 → JS 변수로 자동 반영
+
+- 변수 변경 → 화면에도 자동 반영
+
+### 즉, 양방향 바인딩(Two-way Binding)
+
+1. 가장 기본적인 v-model
+
+    ```html
+    <input v-model="msg" placeholder="메시지 입력">
+    <p>결과: {{ msg }}</p>
+    ```
+
+    ```js
+    const msg = ref("")
+    return { msg }
+    ```
+
+2. `/vue/5.html` 실전 예제 — 간단한 로그인 폼
+    ```html
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+    <meta charset="UTF-8">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    </head>
+    <body>
+
+    <div id="app" style="text-align:center">
+    <h2>로그인</h2>
+
+    <input v-model="id" placeholder="아이디"><br><br>
+    <input v-model="pw" type="password" placeholder="비밀번호"><br><br>
+
+    <p>입력값 미리보기:</p>
+    <p>ID: {{ id }} / PW: {{ pw }}</p>
+
+    <button @click="login">로그인</button>
+    </div>
+
+    <script>
+    const { createApp, ref } = Vue;
+
+    createApp({
+    setup() {
+        const id = ref("");
+        const pw = ref("");
+
+        const login = () => {
+        alert(`ID: ${id.value}\nPW: ${pw.value}`);
+        };
+
+        return { id, pw, login };
+    }
+    }).mount("#app");
+    </script>
+
+    </body>
+    </html>
+
+    ```
+
+## 8. 조건부 렌더링 (v-if, v-show)
+> 조건부 렌더링은 특정 조건에 따라 HTML 요소를 렌더링하거나 숨기는 기능을 제공합니다.
+
+- `v-if` : 조건이 참일 때만 요소를 렌더링합니다. 조건이 거짓이면 해당 요소는 DOM에서 완전히 제거됩니다.
+
+    ```html
+    <div v-if="isVisible">이 요소는 isVisible이 true일 때만 보입니다.</div>
+    ```
+    > v-if는 조건이 변경될 때마다 해당 요소를 DOM에서 추가하거나 제거합니다. 그래서 DOM 업데이트가 일어날 때 성능에 영향을 줄 수 있습니다.
+
+- `v-show` : 조건이 참일 때 요소를 보여주고, 거짓일 때는 display: none 스타일을 추가하여 숨깁니다.
+    ```html
+    <div v-show="isVisible">이 요소는 isVisible이 true일 때만 보입니다.</div>
+    ```
+    > v-show는 요소가 DOM에서 제거되지 않기 때문에 빠르게 토글할 수 있습니다. 하지만 처음에 페이지가 렌더링될 때 요소가 항상 로드되어 있기 때문에 v-if보다 초기 렌더링 성능이 더 느릴 수 있습니다.
+
+
+## 9. 리스트 렌더링 (v-for)
+> v-for는 배열이나 객체를 반복하여 HTML 요소를 렌더링할 때 사용합니다. Vue는 v-for 디렉티브를 통해 데이터를 반복하여 동적으로 UI를 업데이트할 수 있습니다.
+
+
+
+
+## 🧩 실습 / 과제
+
