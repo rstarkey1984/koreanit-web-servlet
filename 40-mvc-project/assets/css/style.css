@@ -58,6 +58,10 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
+.register_form {
+  min-width: 400px; /* 기본 최소 폭: 600px */
+}
+
 .title {
   font-size: 1.5rem;
   font-weight: 700;

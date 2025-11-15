@@ -11,7 +11,7 @@ taglib prefix="c" uri="jakarta.tags.core" %>
     <%@ include file="/WEB-INF/view/layout/header.jsp" %>
     <div class="main-content">
       <div class="wrapper">
-        <div class="card">
+        <div class="card register_form">
           <div class="title">가입 완료 🎉</div>
           <div class="subtitle">
             <b>${sessionScope.id}</b> 님, 환영합니다!<br />

@@ -10,7 +10,7 @@ taglib prefix="c" uri="jakarta.tags.core" %>
     <%@ include file="/WEB-INF/view/layout/header.jsp" %>
     <div class="main-content">
       <div class="wrapper">
-        <div class="card">
+        <div class="card register_form">
           <div class="title">로그인</div>
           <div class="subtitle">계정 정보를 입력하여 로그인하세요.</div>
 
