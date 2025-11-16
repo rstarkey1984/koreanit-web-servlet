@@ -252,14 +252,6 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             public void setRegDate(String regDate) {
                 this.regDate = regDate;
             }
-
-            public String getFk_user_id() {
-                return fk_user_id;
-            }
-
-            public void setFk_user_id(String fk_user_id) {
-                this.fk_user_id = fk_user_id;
-            }
         }
         ```
 
