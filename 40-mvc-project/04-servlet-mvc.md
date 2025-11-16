@@ -1564,9 +1564,10 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
 ## 🧩 실습 / 과제
 
-### 1. 글쓰기 해서 `Board` 테이블에 insert 될때 누가 작성했는지 남기기 
+### 1. 글쓰기 했을때 누가 작성했는지 남기기
 
 - 작업순서
+
     1. DB 에 컬럼 추가. ( 컬럼이름: fk_user_id `varchar(20)`, null 가능하게 )
 
     2. DTO 수정 ( `Board.java` ) - fk_user_id 부분 있는지 체크 ( getter/setter ) 
@@ -1623,18 +1624,51 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
 - 백엔드 작업순서 
 
-    1. DAO 수정 ( `BoardDao.java` ) - findById 하는 부분에서 아래 추가
+    1. DAO 수정 ( `BoardDao.java` ) - 게시물 단건 조회해서 객체 반환할때 `fk_user_id` 포함하기
         
         ```java
-        b.fk_user_id = rs.getString("fk_user_id"); // fk_user_id 컬럼 가져와 저장`
+        public Board findById(int idx) throws SQLException {
+            ...
+            b.fk_user_id = rs.getString("fk_user_id"); // fk_user_id 컬럼 가져와 저장`
+            ...
+        }
         ```
     2. Service 수정 ( `BoardService.java` ) - update, delete 하는 부분에서 검증 단계 추가
 
+        - `canModify 메서드` - 권한체크 검증 메서드
+            ```java              
+            public class BoardService {
+                ...  
+                ...
+                ...
+                ...
+                /** 
+                * 게시글 수정/삭제 권한 체크
+                * - DB fk_user_id == null  → 누구나 가능 (true)
+                * - DB fk_user_id != null  → 세션 fk_user_id와 같을 때만 가능
+                */
+                private boolean canModify(Board b, String fk_user_id) {
+                    // 소유자가 없는 글 (fk_user_id가 null) → 아무나 수정/삭제 가능
+                    if (b.fk_user_id == null) {
+                        return true;
+                    }
 
-        - update,delete 권한체크 예시)
+                    // 소유자가 있는 글인데, 세션에 사용자 정보가 없다 → 권한 없음
+                    if (fk_user_id == null) {
+                        return false;
+                    }
+
+                    // 둘 다 있을 때는 동일한지 비교
+                    return b.fk_user_id.equals(fk_user_id);
+                }
+
+            }
+            ```
+
+        - update, delete 부분에 게시물 조회해서 권한체크 하기
 
             ```java
-            {
+            public ServiceResult update(int idx, String title, String content, String fk_user_id) {
                 ...
 
                 // 1) 기존 게시글 조회
@@ -1656,28 +1690,28 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             }
             ```
 
-        - `canModify 메서드` - 검증 메서드
-            ```java                
-            /** 
-            * 게시글 수정/삭제 권한 체크
-            * - DB fk_user_id == null  → 누구나 가능 (true)
-            * - DB fk_user_id != null  → 세션 fk_user_id와 같을 때만 가능
-            */
-            private boolean canModify(Board b, String fk_user_id) {
-                // 소유자가 없는 글 (fk_user_id가 null) → 아무나 수정/삭제 가능
-                if (b.fk_user_id == null) {
-                    return true;
+            ```java
+            public ServiceResult delete(int idx, String fk_user_id) {
+                ...
+
+                // 1) 기존 게시글 조회
+                Board b_exists = get(idx); // idx 로 게시물 정보 가져오기
+
+                // 게시물이 없으면
+                if (b_exists == null) {
+                    return ServiceResult.fail("게시물이 존재하지 않습니다.");
                 }
 
-                // 소유자가 있는 글인데, 세션에 사용자 정보가 없다 → 권한 없음
-                if (fk_user_id == null) {
-                    return false;
-                }
+                // 2) 권한 체크
+                // - fk_user_id 컬럼이 null이면 누구나 수정 가능
+                // - null이 아니면 세션에서 전달받은 fk_user_id와 같을 때만 가능
+                if (!canModify(b_exists, fk_user_id)) {
+                    return ServiceResult.fail("본인 게시글만 수정할 수 있습니다.");
+                }     
 
-                // 둘 다 있을 때는 동일한지 비교
-                return b.fk_user_id.equals(fk_user_id);
+                ...
             }
-            ```
+            ```        
 
         
 
@@ -1686,19 +1720,25 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         - 수정 또는 삭제 할때 `BoardServce.java` 로 세션값 user_id 넘겨주기
 
             ```java
-            ...
-            String fk_user_id = (String) session.getAttribute("id");
-            ...
-            ServiceResult result = service.update(idx, title, content, fk_user_id);
-            ...
+            /** 게시글 수정 */
+            private void update(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+                HttpSession session = req.getSession();
+                ...
+                String fk_user_id = (String) session.getAttribute("id");
+                ...
+                ServiceResult result = service.update(idx, title, content, fk_user_id);
+                ...
+            }
             ```
 
             ```java
-            ...
-            String fk_user_id = (String) session.getAttribute("id");
-            ...
-            ServiceResult result = service.delete(idx, fk_user_id);
-            ...
+            private void delete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+                HttpSession session = req.getSession();
+                String fk_user_id = (String) session.getAttribute("id");
+                ...
+                ServiceResult result = service.delete(idx, fk_user_id);
+                ...
+            }
             ```
 
 - 프론트엔드 작업순서 
@@ -1741,6 +1781,9 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         - jstl 문법
 
             ```html
+            <!-- 게시글 번호 -->
+            <div>...</div>
+
             <!-- 작성자 (fk_user_id 있을 때만 표시) -->
             <c:if test="${not empty board.fk_user_id}">
             <div
@@ -1751,6 +1794,9 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 <c:out value="${board.fk_user_id}" />
             </div>
             </c:if>
+
+            <!-- 작성 날짜 -->
+            <div>...</div>
             ```
 
 
@@ -1759,18 +1805,26 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 - 백엔드 작업순서
 
     1. DTO 확인 ( fk_user_id 추가되어 있으면 패스 )
-    2. DAO 수정 ( `BoardDao.java` ) - findAll 하는 부분에서 쿼리문 수정 및 반환값 추가
 
-        ```java
-        ...
-        String sql = "SELECT idx, title, content, reg_date, fk_user_id " +
-                "FROM board " +
-                "ORDER BY idx DESC " +
-                "LIMIT ? OFFSET ?";
-        ...        
-        b.fk_user_id = rs.getString("fk_user_id"); // DB fk_user_id → Board.fk_user_id
-        ...
-        ```
+    2. DAO 수정 ( `BoardDao.java` ) 
+        - findAll select 쿼리문에서 fk_user_id 컬럼 조회하도록 수정
+
+        - 쿼리 실행 결과를 `Board b` 에 `fk_user_id` 도 반환하도록 추가
+
+            ```java
+            public List<Board> findAll(int page, int size) throws SQLException {
+                ...
+                String sql = "SELECT idx, title, content, reg_date, fk_user_id " +
+                        "FROM board " +
+                        "ORDER BY idx DESC " +
+                        "LIMIT ? OFFSET ?";
+                ...        
+                Board b = new Board();
+                ...
+                b.fk_user_id = rs.getString("fk_user_id"); // DB fk_user_id → Board.fk_user_id            
+                ...
+            }
+            ```
 
 - 프론트엔드 작업순서
 
