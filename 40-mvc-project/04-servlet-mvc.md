@@ -295,11 +295,6 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         ```java
         package localhost.myapp.user; // UserDao 클래스가 속한 패키지 선언
 
-        import localhost.myapp.common.DB; // DB 커넥션 풀(DataSource) 제공 클래스 import
-
-        import javax.sql.DataSource; // DataSource 인터페이스
-        import java.sql.*; // JDBC 관련 클래스들 import
-
         /**
         * UserDao: user 테이블에 대한 CRUD 중 일부 기능을 담당하는 DAO 클래스
         * - 회원가입(insert)
@@ -446,7 +441,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 int offset = Math.max(0, (page - 1) * limit); // OFFSET 계산 (page=1이면 offset=0)
 
                 // DESC 정렬로 최신 글 먼저 → LIMIT/OFFSET으로 페이징
-                String sql = "SELECT idx, title, content, reg_date, fk_user_id " +
+                String sql = "SELECT idx, title, content, reg_date " +
                         "FROM board " +
                         "ORDER BY idx DESC " +
                         "LIMIT ? OFFSET ?";
@@ -468,8 +463,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                             b.idx = rs.getInt("idx"); // DB의 idx 컬럼 값을 Board.idx 필드에 저장
                             b.title = rs.getString("title"); // DB title → Board.title
                             b.content = rs.getString("content"); // DB content → Board.content
-                            b.regDate = rs.getString("reg_date");// DB reg_date → Board.regDate
-                            b.fk_user_id = rs.getString("fk_user_id"); // DB fk_user_id → Board.fk_user_id
+                            b.regDate = rs.getString("reg_date");// DB reg_date → Board.regDate                    
 
                             list.add(b); // 리스트에 객체 추가
                         }
@@ -498,8 +492,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
                             Board b = new Board(); // Board 객체 생성
 
-                            b.idx = rs.getInt("idx"); // idx 컬럼 가져와 저장
-                            b.fk_user_id = rs.getString("fk_user_id"); // fk_user_id 컬럼 가져와 저장
+                            b.idx = rs.getInt("idx"); // idx 컬럼 가져와 저장                    
                             b.title = rs.getString("title"); // title 저장
                             b.content = rs.getString("content"); // content 저장
                             b.regDate = rs.getString("reg_date");// reg_date 저장
@@ -517,14 +510,13 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             */
             public Integer insert(Board b) throws SQLException {
 
-                String sql = "INSERT INTO board (title, content, fk_user_id) VALUES (?, ?, ?)"; // INSERT SQL
+                String sql = "INSERT INTO board (title, content) VALUES (?, ?)"; // INSERT SQL
 
                 try (Connection con = ds.getConnection(); // 커넥션 얻기
                         PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) { // SQL 준비
 
                     ps.setString(1, b.title); // 첫 번째 ? = title
                     ps.setString(2, b.content); // 두 번째 ? = content
-                    ps.setString(3, b.fk_user_id);
 
                     int affected = ps.executeUpdate(); // INSERT 실행
 
@@ -748,9 +740,6 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
     ```java
     package localhost.myapp.user;
 
-    import java.sql.SQLException;
-    import localhost.myapp.dto.ServiceResult;
-
     /**
     * User 도메인의 비즈니스 규칙(Service Layer)을 담당.
     *
@@ -910,14 +899,13 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         /**
         * 생성 : 성공 시 새 idx 가 ServiceResult.idx 에 들어감
         */
-        public ServiceResult create(String title, String content, String fk_user_id) {
+        public ServiceResult create(String title, String content) {
             try {
                 validate(title, content);
 
                 Board b = new Board();
                 b.title = title.trim();
                 b.content = content.trim();
-                b.fk_user_id = fk_user_id;
 
                 Integer newId = dao.insert(b);
 
@@ -939,25 +927,10 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         /**
         * 수정
         */
-        public ServiceResult update(int idx, String title, String content, String fk_user_id) {
+        public ServiceResult update(int idx, String title, String content) {
             try {
                 if (idx <= 0) {
                     return ServiceResult.fail("잘못된 게시글 번호입니다.");
-                }
-
-                // 1) 기존 게시글 조회
-                Board b_exists = get(idx); // idx 로 게시물 정보 가져오기
-
-                // 게시물이 없으면
-                if (b_exists == null) {
-                    return ServiceResult.fail("게시물이 존재하지 않습니다.");
-                }
-
-                // 2) 권한 체크
-                // - fk_user_id 컬럼이 null이면 누구나 수정 가능
-                // - null이 아니면 세션에서 전달받은 fk_user_id와 같을 때만 가능
-                if (!canModify(b_exists, fk_user_id)) {
-                    return ServiceResult.fail("본인 게시글만 수정할 수 있습니다.");
                 }
 
                 validate(title, content);
@@ -987,25 +960,10 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         /**
         * 삭제
         */
-        public ServiceResult delete(int idx, String fk_user_id) {
+        public ServiceResult delete(int idx) {
             try {
                 if (idx <= 0) {
                     return ServiceResult.fail("잘못된 게시글 번호입니다.");
-                }
-
-                // 1) 기존 게시글 조회
-                Board b_exists = get(idx); // idx 로 게시물 정보 가져오기
-
-                // 게시물이 없으면
-                if (b_exists == null) {
-                    return ServiceResult.fail("게시물이 존재하지 않습니다.");
-                }
-
-                // 2) 권한 체크
-                // - fk_user_id 컬럼이 null이면 누구나 수정 가능
-                // - null이 아니면 세션에서 전달받은 fk_user_id와 같을 때만 가능
-                if (!canModify(b_exists, fk_user_id)) {
-                    return ServiceResult.fail("본인 게시글만 삭제할 수 있습니다.");
                 }
 
                 boolean ok = dao.delete(idx);
@@ -1038,27 +996,6 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             if (t.length() > 45) {
                 throw new IllegalArgumentException("제목은 45자 이하로 입력해주세요.");
             }
-        }
-
-        /**
-        * 게시글 수정/삭제 권한 체크
-        * - DB fk_user_id == null → 누구나 가능 (true)
-        * - DB fk_user_id != null → 세션 fk_user_id와 같을 때만 가능
-        */
-        private boolean canModify(Board b, String fk_user_id) {
-
-            // 소유자가 없는 글 (fk_user_id가 null) → 아무나 수정/삭제 가능
-            if (b.fk_user_id == null) {
-                return true;
-            }
-
-            // 소유자가 있는 글인데, 세션에 사용자 정보가 없다 → 권한 없음
-            if (fk_user_id == null) {
-                return false;
-            }
-
-            // 둘 다 있을 때는 동일한지 비교
-            return b.fk_user_id.equals(fk_user_id);
         }
 
     }
@@ -1533,9 +1470,8 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
             String title = req.getParameter("title");
             String content = req.getParameter("content");
-            String fk_user_id = (String) session.getAttribute("id");
 
-            ServiceResult result = service.create(title, content, fk_user_id);
+            ServiceResult result = service.create(title, content);
 
             String ctx = req.getContextPath();
 
@@ -1558,9 +1494,8 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             int idx = parseInt(req.getParameter("idx"), 0);
             String title = req.getParameter("title");
             String content = req.getParameter("content");
-            String fk_user_id = (String) session.getAttribute("id");
 
-            ServiceResult result = service.update(idx, title, content, fk_user_id);
+            ServiceResult result = service.update(idx, title, content);
 
             String ctx = req.getContextPath();
 
@@ -1578,10 +1513,9 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 throws IOException {
 
             HttpSession session = req.getSession();
-            String fk_user_id = (String) session.getAttribute("id");
 
             int idx = parseInt(req.getParameter("idx"), 0);
-            ServiceResult result = service.delete(idx, fk_user_id);
+            ServiceResult result = service.delete(idx);
 
             String ctx = req.getContextPath();
 
@@ -1638,29 +1572,62 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
 ## 🧩 실습 / 과제
 
-### 1. 로그인한 사용자만 글쓰기 가능하도록 하기
-- 글쓰기 버튼을 눌렀을때, 로그인이 필요합니다 경고창을 띄우거나 로그인페이지로 이동시키기
-
-### 2. 글쓰기 해서 `Board` 테이블에 insert 될때 누가 작성했는지 남기기 
+### 1. 글쓰기 해서 `Board` 테이블에 insert 될때 누가 작성했는지 남기기 
 
 - 작업순서
-    1. DB 에 컬럼 추가. ( 컬럼이름: fk_user_id, null 가능하게 )
+    1. DB 에 컬럼 추가. ( 컬럼이름: fk_user_id `varchar(20)`, null 가능하게 )
 
-    2. DTO 수정 ( `Board.java` ) - fk_user_id 부분 있는지 체크 
+    2. DTO 수정 ( `Board.java` ) - fk_user_id 부분 있는지 체크 ( getter/setter ) 
+        ```java
+        /** 작성자 아이디 (DB의 fk_user_id 컬럼) */
+        public String fk_user_id;
+
+        public String getFk_user_id() {
+            return fk_user_id;
+        }
+
+        public void setFk_user_id(String fk_user_id) {
+            this.fk_user_id = fk_user_id;
+        }
+        ```
     3. DAO 수정 ( `BoardDao.java` ) - sql insert 하는 부분 체크
-    4. Service 수정 ( `BoardService.java` ) - create 하는 부분 체크 
+        ```java
+        public Integer insert(Board b) throws SQLException {
+            ...
+            String sql = "INSERT INTO board (title, content, fk_user_id) VALUES (?, ?, ?)"; // INSERT SQL
+            ...
+            ps.setString(1, b.title); // 첫 번째 ? = title
+            ps.setString(2, b.content); // 두 번째 ? = content
+            ps.setString(3, b.fk_user_id); // 세 번째 ? = fk_user_id
+            ...
+        }
+        ```
+    4. Service 수정 ( `BoardService.java` ) - create 하는 부분 체크
+        ```java
+        public ServiceResult create(String title, String content, String fk_user_id) {
+            ...
+            Board b = new Board();
+            b.title = title.trim();
+            b.content = content.trim();
+            b.fk_user_id = fk_user_id;
+
+            Integer newId = dao.insert(b);
+            ...
+        }
+        ``` 
     5. Controller 수정 ( `BoardController.java` ) - service 메서드 실행 시킬때 세션값 넘겨주기
+        ```java
+        /** 게시글 생성 */
+        private void create(HttpServletRequest req, HttpServletResponse resp)
+            ...
+            String fk_user_id = (String) session.getAttribute("id");
+            ...
+            ServiceResult result = service.create(title, content, fk_user_id);
+            ...
+        }
+        ```
 
-- 세션값 가져오기
-    ```java
-    HttpSession session = req.getSession();
-    
-    ...
-
-    String fk_user_id = (String) session.getAttribute("id");
-    ```
-
-### 3. 글 수정하기 또는 삭제하기 눌렀을때 본인이 작성한 게시물만 삭제하도록 수정하기
+### 2. 글 수정하기 또는 삭제하기 눌렀을때 본인이 작성한 게시물만 삭제하도록 수정하기
 
 - 백엔드 작업순서 
 
@@ -1724,7 +1691,23 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
     2. Controller 수정 ( `BoardController.java` )
 
-        - BoardServce.java 로 세션값 user_id 넘겨주기
+        - 수정 또는 삭제 할때 `BoardServce.java` 로 세션값 user_id 넘겨주기
+
+            ```java
+            ...
+            String fk_user_id = (String) session.getAttribute("id");
+            ...
+            ServiceResult result = service.update(idx, title, content, fk_user_id);
+            ...
+            ```
+
+            ```java
+            ...
+            String fk_user_id = (String) session.getAttribute("id");
+            ...
+            ServiceResult result = service.delete(idx, fk_user_id);
+            ...
+            ```
 
 - 프론트엔드 작업순서 
 
@@ -1741,7 +1724,23 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 test="${empty board.fk_user_id 
                 or (not empty sessionScope.id and board.fk_user_id eq sessionScope.id)}"
             >
+                <!-- 수정하기 -->
+                <a
+                href="${pageContext.request.contextPath}/board/edit?idx=${board.idx}"
+                class="btn"
+                >
+                수정하기
+                </a>
+
+                <!-- 삭제 (POST) -->
+                <form
+                action="${pageContext.request.contextPath}/board"
+                method="post"
+                onsubmit="return confirm('정말 삭제하시겠습니까?');"
+                >
                 ...
+                </form>
+
             </c:if>
             ```
 
@@ -1763,7 +1762,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             ```
 
 
-### 4. 리스트에 작성자 표시
+### 3. 리스트에 작성자 표시
 
 - 백엔드 작업순서
 
@@ -1787,7 +1786,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
         - table 헤더에 작성자 칼럼 `<th>` 부분 추가
 
-            ```
+            ```html
             <th
                 style="
                     text-align: left;
