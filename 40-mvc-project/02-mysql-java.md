@@ -138,18 +138,43 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
     ```java
     package localhost.myapp.ex;
 
+    // 서블릿을 특정 URL 패턴("/ex/jdbc")에 매핑
+    // 브라우저에서 http://localhost:8080/yourapp/ex/jdbc 로 접근 가능
     @WebServlet("/ex/jdbc")
     public class JDBC extends HttpServlet {
-        @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+                throws ServletException, IOException {
+
+            // -----------------------------
+            // 1. DB 접속 정보 설정
+            // -----------------------------
+            // JDBC URL: "mysql://주소:포트/DB명"
+            // localhost → 로컬 MySQL 서버
+            // 3306 → MySQL 기본 포트
+            // test → 사용할 데이터베이스 이름
             String url = "jdbc:mysql://localhost:3306/test";
+
+            // MySQL 사용자 계정
             String user = "test";
+
+            // MySQL 비밀번호
             String pass = "test1234";
 
+
+            // -----------------------------
+            // 2. DB 연결 시도
+            // -----------------------------
+            // try-with-resources 구문:
+            // Connection 객체가 자동으로 close() 되므로 매우 안전한 방식
             try (Connection con = DriverManager.getConnection(url, user, pass)) {
+
+                // 연결 성공 시 콘솔 출력
                 System.out.println("연결 성공!");
+
             } catch (SQLException e) {
+                // 연결 실패 시 예외 출력
                 e.printStackTrace();
             }
         }
@@ -189,7 +214,7 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
     DataSource ds = (DataSource) new InitialContext().lookup("java:comp/env/jdbc/MyDB");
     ```
 
-    Tomcat `ROOT.xml` 에 등록해둔 아래 리소스를 가져옴. 
+    Tomcat `Context` 안에 `<Resource name="jdbc/MyDB" .../>` 에 해당하는 리소스를 가져옴. ( `java:comp/env` 는 고정값 )
     ```xml
     <Resource
         name="jdbc/MyDB"
@@ -205,8 +230,8 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
         validationQuery="SELECT 1"
     />       
     ```
-    `web.xml` ( 추가설정 )
-    > 아래처럼 `web.xml` 에 resource-ref 를 쓰는 이유는 IDE(`VSCode`)가 JNDI 리소스를 인식하도록 알려주는 역할. 그래서 경고를 안 띄움.
+    `web.xml` ( 선택: IDE 에서 경고가 뜨면 추가설정 )
+    > IDE 에서 경고가 뜨면 JNDI 리소스를 인식하도록 `resource-ref` 를 선언해서 알려주면 경고가 사라짐.
     ```xml
     <!-- 톰캣 JNDI DataSource 참조 (이름 반드시 일치) -->
     <resource-ref>
@@ -221,48 +246,147 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
 
     - `JNDI.java`
         ```java
-        @WebServlet("/ex/jndi")
-        public class JNDI extends HttpServlet {
-            @Override
-            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        package localhost.myapp.ex;
 
-                Context init;
+        @WebServlet("/ex/jndi")   // "/ex/jndi" URL로 들어오면 이 서블릿이 실행됨
+        public class JNDI extends HttpServlet {
+
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+                    throws ServletException, IOException {
+
+                Context init;  // JNDI 초기 컨텍스트 객체 변수 선언
+
                 try {
+                    // ---------------------------------------
+                    // 1. InitialContext 생성
+                    //    → JNDI 이름공간(java:comp/env/)에 접근할 수 있는 시작점
+                    // ---------------------------------------
                     init = new InitialContext();
+
+                    // ---------------------------------------
+                    // 2. JNDI로 등록된 DataSource 조회
+                    //    "java:comp/env/" 는 표준 고정 경로
+                    //    "jdbc/MyDB" 는 ROOT.xml에 설정한 자원 이름
+                    //
+                    //    즉:
+                    //    <Resource name="jdbc/MyDB" ... /> ← 이걸 lookup 하는 것
+                    // ---------------------------------------
                     DataSource ds = (DataSource) init.lookup("java:comp/env/jdbc/MyDB");
+
+                    // ---------------------------------------
+                    // 3. DataSource 로부터 DB Connection 획득
+                    //    try-with-resources 를 쓰면 자동으로 close() 호출됨
+                    // ---------------------------------------
                     try (Connection con = ds.getConnection()) {
                         System.out.println("DataSource 연결 성공!");
                     } catch (SQLException e) {
+                        // DB 연결 관련 오류 처리
                         e.printStackTrace();
                     }
+
                 } catch (NamingException e) {
+                    // JNDI lookup 실패 시 예외 처리
                     e.printStackTrace();
                 }
-
             }
         }
+
         ```
 
 
         - JNDI lookup 과정 튜닝하기 
             > JNDI란 이름으로 리소스를 찾아 사용하는 표준 API
 
-            예시) `/common/DB.java`
+            `/common/DB.java`
 
             ```java
+            package localhost.myapp.common;
+
+            /**
+            * JNDI 기반 DataSource 헬퍼 클래스
+            *
+            * 역할
+            * - 톰캣(JNDI)에 등록된 커넥션 풀(javax.sql.DataSource)을 애플리케이션 전역에서
+            * 하나의 정적(static) 인스턴스로 공유한다.
+            * - DB 연결은 ds.getConnection() 으로 필요할 때마다 풀에서 빌려 쓰는 방식.
+            *
+            * 특징
+            * - static 초기화 블록에서 딱 한 번 lookup → 캐시
+            * - 스레드 안전: JVM이 클래스 로딩 시 static 블록을 단 한 번만 실행하도록 보장
+            * - final 키워드로 DataSource 인스턴스 불변성 확보
+            */
             public class DB {
 
-                private static DataSource ds;
+                /**
+                * 톰캣에서 제공하는 DataSource(커넥션 풀) 객체
+                *
+                * - final: 초기화 이후 값 변경 불가
+                * - static: 애플리케이션 전역에서 단 하나의 인스턴스만 사용
+                */
+                private static final DataSource ds;
 
+                /**
+                * static 초기화 블록
+                *
+                * 동작
+                * - 클래스가 JVM에 의해 처음 로딩될 때 단 한 번 실행됨
+                * - 여기서 JNDI Lookup을 수행하여 DataSource를 찾고 캐싱함
+                *
+                * 장점
+                * - 스레드-세이프 (JVM 보장)
+                * - DB 설정 오류가 있으면 애플리케이션 초기 구동 단계에서 바로 예외 발생 → 문제 조기 발견
+                */
                 static {
                     try {
+                        // 톰캣이 제공하는 JNDI 초기 컨텍스트
                         Context ctx = new InitialContext();
+
+                        /**
+                        * JNDI Lookup
+                        *
+                        * "java:comp/env/" :
+                        * 웹 애플리케이션 전용 JNDI 네임스페이스
+                        *
+                        * "jdbc/MyDB" :
+                        * context.xml 또는 server.xml에 아래처럼 선언한 Resource 이름
+                        *
+                        * <Resource name="jdbc/MyDB"
+                        * type="javax.sql.DataSource"
+                        * ... />
+                        */
                         ds = (DataSource) ctx.lookup("java:comp/env/jdbc/MyDB");
+
                     } catch (Exception e) {
+                        /**
+                        * Lookup 실패 시 발생 가능한 예외
+                        * - NameNotFoundException : Resource 이름이 틀렸거나 바인딩되지 않았을 때
+                        * - NoInitialContextException : 컨테이너(JNDI)가 없는 환경에서 실행될 때
+                        *
+                        * 예외 발생 시 애플리케이션 초기화 자체를 중단시키는 것이 좋음
+                        * → DB 연결이 필수인 웹앱의 경우 조기 실패(Fail Fast) 전략이 안정적
+                        */
                         throw new RuntimeException("JNDI DataSource lookup failed: jdbc/MyDB", e);
                     }
                 }
 
+                /**
+                * 유틸리티 클래스이므로 인스턴스 생성 금지
+                * (new DB() 하지 못하도록 막음)
+                */
+                private DB() {
+                }
+
+                /**
+                * DataSource 전역 접근자
+                *
+                * @return 톰캣이 관리하는 커넥션 풀 객체(DataSource)
+                *
+                *         사용 예:
+                *         try (Connection con = DB.getDataSource().getConnection()) {
+                *         // SQL 작업 수행
+                *         }
+                */
                 public static DataSource getDataSource() {
                     return ds;
                 }
@@ -272,6 +396,8 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
         - `DB.java` 를 이용하여 변경된 `JNDI.java` 파일
         
             ```java
+            package localhost.myapp.ex;
+
             @WebServlet("/ex/jndi")
             public class JNDI extends HttpServlet {
 
@@ -280,7 +406,8 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
                 @Override
                 protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
-                    try (Connection con = ds.getConnection()) {
+                    try (Connection con = ds.getConnection();) {
+
                         System.out.println("DataSource 연결 성공!");
                     } catch (SQLException e) {
                         e.printStackTrace();
@@ -291,7 +418,7 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
 
 ## 3. JNDI(DataSource) → Connection 얻기 → `PreparedStatement` 로 `준비` 하고 SQL 실행
 
-> JNDI로 DataSource(커넥션 풀)를 얻었으면, 실제로 SQL을 실행할 때 반드시 알아야 하는 것이 `PreparedStatement`이다. 
+> DataSource(커넥션 풀)에서 Connection 을 얻었으면, 실제로 SQL을 실행할 때 반드시 알아야 하는 것이 `PreparedStatement`이다. 
 
 > `PreparedStatement`는 단순히 "sql 문자열 실행"이 아니라, SQL 주입 방지, 바인딩, 속도 최적화 등 실무에서 필수 기능을 제공한다.
 
@@ -414,8 +541,10 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
 
     `SQLtest.java`
     ```java
+    package localhost.myapp.ex;
+
     /**
-     * /ex/sql 요청이 들어오면 MySQL의 user 테이블을 조회하여
+    * /ex/sql 요청이 들어오면 MySQL의 user 테이블을 조회하여
     * 콘솔에 결과를 출력하는 테스트 서블릿
     */
     @WebServlet("/ex/sql")
@@ -427,12 +556,34 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
-            // 응답을 JSON 형태로 설정 (출력은 안하지만 관례적으로 맞춰 둠)
-            resp.setContentType("application/json; charset=UTF-8");
-
             select_test();
+            // insert_test();
 
         }
+
+        // private void insert_test() {
+
+        // String sql = "insert into `test`.`board` (`title`, `content`) values (?,?);";
+
+        // try (Connection con = ds.getConnection(); // 1) 커넥션 풀에서 Connection 가져오기
+        // PreparedStatement ps = con.prepareStatement(sql) // 2) PreparedStatement 생성
+        // ) {
+
+        // System.out.println("DataSource 연결 성공!");
+
+        // // SQL의 첫 번째 ? 에 값 바인딩
+        // ps.setString(1, "제목11");
+        // ps.setString(2, "내용22");
+
+        // int flag = ps.executeUpdate();
+        // System.out.println("=== MYSQL executeUpdate 실행결과 : " + flag + "개 성공 ===");
+
+        // } catch (SQLException e) {
+        // // DB 관련 예외 발생 시 스택 출력
+        // e.printStackTrace();
+        // }
+
+        // }
 
         private void select_test() {
 
@@ -456,7 +607,7 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
                 * ResultSet 역시 닫아야 하는 자원이므로
                 * 별도의 try-with-resources 블록으로 묶음
                 */
-                try (ResultSet rs = ps.executeQuery()) { // SELECT 실행 → ResultSet 형태로 반환 → 커서가 첫 행 이전에 위치
+                try (ResultSet rs = ps.executeQuery()) { // SELECT 실행 → 결과 집합 반환
 
                     // 실행된 결과셋(ResultSet)의 메타데이터 (컬럼명, 타입 등 정보)
                     ResultSetMetaData meta = rs.getMetaData();
@@ -467,7 +618,8 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
                     System.out.print("| ");
                     for (int i = 1; i <= columnCount; i++) {
                         String colName = meta.getColumnLabel(i); // SELECT 결과의 컬럼명
-                        System.out.print(colName + " | ");
+                        String colType = meta.getColumnTypeName(i);
+                        System.out.print(colName + "(" + colType + ")" + " | ");
                     }
                     System.out.println("");
 
@@ -505,7 +657,7 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
 
 - `DataSource Connection Pool` 에서 `Connection` 을 얻는다.
     ```java
-    Connection con = ds.getConnection(); // 커넥션 풀에서 DB 연결(Connection) 하나 가져오기
+    Connection con = ds.getConnection(); // Data Source 커넥션 풀에서 DB 연결(Connection) 하나 가져오기
     ```
 
 - `PreparedStatement` 로 쿼리문을 세팅한다.
@@ -542,3 +694,6 @@ public class RequestLogFilter implements Filter { // Filter 인터페이스 구�
     ```sql
     insert into `test`.`board` (`title`, `content`) values ("제목", "내용");
     ```
+
+
+- `User` 테이블 select_user 메서드로 만들어서 출력하기

@@ -49,16 +49,51 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
 ## 1. 라우팅 표 만들기
 
-- 어떤 URL이 어떤 동작을 할지 표로 먼저 확정 ( 예시: )
+- 어떤 URL이 어떤 동작을 할지 표로 먼저 확정 ( `{ctx}`는 `req.getContextPath()` )
 
-    | Method | Path           | 기능     | 뷰/응답           |
-    | -----: | -------------- | ------ | -------------- |
-    |    GET | /user/register | 회원가입 폼   | `register.jsp` |
-    |    GET | /user/register_ok | 회원가입 축하  | `register_ok.jsp` |
-    |    GET | /user/login | 로그인 화면   | `login.jsp` |    
-    |    GET | /user/login_ok | 로그인 성공 화면   | `login_ok.jsp` |    
-    |   POST | /user/register | 회원가입 처리  | /user/register_ok 로 리다이렉트 |    
-    |   POST | /user/login | 로그인 처리   | /user/login_ok 로 리다이렉트|    
+1. 게시판 (`BoardController.java` → `/board/*`)
+
+    1-1. `GET` 요청
+    | HTTP | URL                           | 설명                    | 컨트롤러 메서드         | 뷰/처리                             | 주요 파라미터                |
+    | ---- | ----------------------------- | --------------------- | ---------------- | -------------------------------- | ---------------------- |
+    | GET  | `{ctx}/board(/)`              | 기본 진입 → 목록으로 이동       | `doGet` → `list` | `list.jsp`                       | `page`(선택), `size`(선택) |    
+    | GET  | `{ctx}/board/list`            | 게시글 목록                | `list`           | `/WEB-INF/view/board/list.jsp`   | `page`, `size`         |
+    | GET  | `{ctx}/board/detail?idx={번호}` | 게시글 상세                | `detail`         | `/WEB-INF/view/board/detail.jsp` | `idx` (필수)             |
+    | GET  | `{ctx}/board/write`           | 글쓰기 폼                 | `showWriteForm`  | `/WEB-INF/view/board/write.jsp`  | -                      |
+    | GET  | `{ctx}/board/edit?idx={번호}`   | 수정 폼                  | `showEditForm`   | `/WEB-INF/view/board/edit.jsp`   | `idx` (필수)             |
+
+    1-2. `POST` 요청
+    > 공통: action 파라미터로 분기 (create/update/delete)
+
+    | HTTP | URL                             | 설명     | 컨트롤러 메서드 | 리다이렉트 위치                                                               | 주요 파라미터                                    |
+    | ---- | ------------------------------- | ------ | -------- | ---------------------------------------------------------------------- | ------------------------------------------ |
+    | POST | `{ctx}/board` + `action=create` | 게시글 생성 | `create` | 성공: `{ctx}/board/list`<br>실패: `{ctx}/board/write`                      | `title`, `content`, `action=create`        |
+    | POST | `{ctx}/board` + `action=update` | 게시글 수정 | `update` | 성공: `{ctx}/board/detail?idx={idx}`<br>실패: `{ctx}/board/edit?idx={idx}` | `idx`, `title`, `content`, `action=update` |
+    | POST | `{ctx}/board` + `action=delete` | 게시글 삭제 | `delete` | `{ctx}/board/list`                                                     | `idx`, `action=delete`                     |
+    | POST | `{ctx}/board` (action 없음/이상)    | 잘못된 요청 | `doPost` | 400 Bad Request                                                        | -                                          |
+
+2. 사용자 (`UserController.java` → `/user/*`)
+
+    2-1. `GET` 요청
+    | HTTP | URL                      | 설명               | 컨트롤러 메서드               | 뷰/처리                                                   | 비고                 |
+    | ---- | ------------------------ | ---------------- | ---------------------- | ------------------------------------------------------ | ------------------ |
+    | GET  | `{ctx}/user`             | 기본 → 로그인으로 리다이렉트 | `doGet` (path="/")     | `redirect` → `{ctx}/user/login`                        | -                  |
+    | GET  | `{ctx}/user/`            | 위와 동일            | `doGet` (normPath="/") | `redirect` → `{ctx}/user/login`                        | -                  |
+    | GET  | `{ctx}/user/login`       | 로그인 폼            | `doGet`                | `/WEB-INF/view/user/login.jsp`                         | -                  |
+    | GET  | `{ctx}/user/login_ok`    | 로그인 성공 페이지       | `doGet`                | `/WEB-INF/view/user/login_ok.jsp`                      | 세션에 `id` 있어야 정상 흐름 |
+    | GET  | `{ctx}/user/register`    | 회원가입 폼           | `doGet`                | `/WEB-INF/view/user/register.jsp`                      | -                  |
+    | GET  | `{ctx}/user/register_ok` | 회원가입 완료 페이지      | `doGet`                | `/WEB-INF/view/user/register_ok.jsp`                   | -                  |
+    | GET  | `{ctx}/user/logout`      | 로그아웃             | `doGet`                | 세션 `invalidate()` 후<br>`redirect` → `{ctx}/user/login` | -                  |
+    | GET  | `{ctx}/user/*` (이외)     | 없는 페이지           | `doGet`                | 404 Not Found                                          | -                  |
+
+    2-2. `POST` 요청
+    > `/login`, `/register` 두 가지만 처리
+
+    | HTTP | URL                   | 설명      | 컨트롤러 메서드                    | 리다이렉트 위치                                                  | 주요 파라미터                   |
+    | ---- | --------------------- | ------- | --------------------------- | --------------------------------------------------------- | ------------------------- |
+    | POST | `{ctx}/user/login`    | 로그인 처리  | `doPost` (path="/login")    | 성공: `{ctx}/user/login_ok`<br>실패: `{ctx}/user/login`       | `id`, `password`          |
+    | POST | `{ctx}/user/register` | 회원가입 처리 | `doPost` (path="/register") | 성공: `{ctx}/user/register_ok`<br>실패: `{ctx}/user/register` | `id`, `password`, `email` |
+    | POST | `{ctx}/user/*` (이외)   | 잘못된 요청  | `doPost` default            | 400 Bad Request                                           | -                         |
 
 
 ## 2. DB 스키마/DTO + DAO 구현
@@ -75,80 +110,74 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         package localhost.myapp.user;
 
         /**
-        * User 엔티티(모델) 클래스
-        * - JavaBean 규칙 준수 (private 필드 + getter/setter)
-        * - JSP/EL에서 ${user.id} 형태로 접근 가능 (getId() 호출)
-        * - DB 조회/삽입 시 DAO에서 값을 채워 넣는 용도
+        * User DTO(데이터 전달 객체)
+        * - DB의 user 테이블 한 행(row)을 저장하는 모델 클래스
+        * - JavaBean 규약 준수 (private 필드 + public getter/setter)
+        * - JSP/EL에서 ${user.id}처럼 getter가 자동 호출됨
         */
         public class User {
 
-            /** 고유 번호 (Primary Key) */
+            /** 고유 번호 (Primary Key, DB의 idx 컬럼) */
             public int idx;
 
-            /** 사용자 아이디 */
+            /** 사용자 아이디 (DB의 id 컬럼) */
             public String id;
 
-            /** 비밀번호 (해싱된 값이 들어감) */
+            /** 비밀번호 (해시된 문자열, DB의 password 컬럼) */
             public String password;
 
-            /** 이메일 */
+            /** 이메일 주소 (DB의 email 컬럼) */
             public String email;
 
-            /** 회원 가입 날짜 (문자열로 저장: yyyy-MM-dd HH:mm:ss 등) */
+            /**
+            * 가입일시
+            * - 자바 필드명: regDate
+            * - DB 컬럼명: reg_date
+            */
             public String regDate;
 
-
             /** 기본 생성자 (JavaBean 규약) */
-            public User() {}
+            public User() {
+            }
 
-            // ---------- Getter / Setter ----------
+            // ---------------------- Getter / Setter ----------------------
 
-            /** idx 반환 (JSP에서 ${user.idx} → getIdx() 호출) */
             public int getIdx() {
                 return idx;
             }
 
-            /** idx 설정 (DAO에서 rs.getInt("idx") 값 저장 시 사용) */
             public void setIdx(int idx) {
                 this.idx = idx;
             }
 
-            /** id 반환 */
             public String getId() {
                 return id;
             }
 
-            /** id 설정 */
             public void setId(String id) {
                 this.id = id;
             }
 
-            /** password 반환 */
             public String getPassword() {
                 return password;
             }
 
-            /** password 설정 */
             public void setPassword(String password) {
                 this.password = password;
             }
 
-            /** email 반환 */
             public String getEmail() {
                 return email;
             }
 
-            /** email 설정 */
             public void setEmail(String email) {
                 this.email = email;
             }
 
-            /** regDate 반환 */
             public String getRegDate() {
                 return regDate;
             }
 
-            /** regDate 설정 */
             public void setRegDate(String regDate) {
                 this.regDate = regDate;
             }
@@ -157,86 +186,79 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
     - `Board.java` - board 테이블 row(행)
         ```java
-        package localhost.myapp.board; // 이 클래스가 속한 패키지 지정 (폴더 구조와 매칭됨)
+        package localhost.myapp.board;
 
         /**
         * Board DTO(데이터 전달 객체)
-        * - DB의 board 테이블 한 행(row)을 그대로 담는 역할
-        * - JavaBean 규약(필드는 private, getter/setter 제공)을 따름
-        * - JSP의 EL(${board.title})에서 getter를 자동으로 호출하여 값을 읽을 수 있음
+        * - DB의 board 테이블 한 행(row)을 저장하는 모델 클래스
+        * - JavaBean 규약 준수 (private 필드 + public getter/setter)
+        * - JSP/EL에서 ${board.title} 형태로 getter 자동 호출
         */
         public class Board {
 
-            /** 게시글 번호 (Primary Key, DB의 idx에 해당) */
+            /** 게시글 번호 (Primary Key, DB의 idx 컬럼) */
             public int idx;
 
-            /** 게시글 제목 */
+            /** 게시글 제목 (DB의 title 컬럼) */
             public String title;
 
-            /** 게시글 내용 */
+            /** 게시글 내용 (DB의 content 컬럼) */
             public String content;
 
-            /** 게시글 등록일 (문자열 형태로 저장: yyyy-MM-dd HH:mm:ss 등) */
+            /**
+            * 게시글 등록일
+            * - 자바 필드명: regDate
+            * - DB 컬럼명: reg_date
+            */
             public String regDate;
+
+            /** 작성자 아이디 (DB의 fk_user_id 컬럼) */
+            public String fk_user_id;
+
+            /** 기본 생성자 (JavaBean 규약 준수) */
+            public Board() {
+            }
 
             // ---------------------- Getter / Setter ----------------------
 
-            /**
-            * 게시글 번호(idx) 읽기
-            * JSP에서 ${board.idx} 라고 쓰면 내부적으로 getIdx()가 자동 호출됨
-            */
             public int getIdx() {
                 return idx;
             }
 
-            /**
-            * 게시글 번호(idx) 설정
-            * DAO에서 DB 조회 시 rs.getInt("idx") 값을 넣어주는 용도로 사용
-            */
             public void setIdx(int idx) {
                 this.idx = idx;
             }
 
-            /**
-            * 게시글 제목(title) 읽기
-            */
             public String getTitle() {
                 return title;
             }
 
-            /**
-            * 게시글 제목(title) 설정
-            */
             public void setTitle(String title) {
                 this.title = title;
             }
 
-            /**
-            * 게시글 내용(content) 읽기
-            */
             public String getContent() {
                 return content;
             }
 
-            /**
-            * 게시글 내용(content) 설정
-            */
             public void setContent(String content) {
                 this.content = content;
             }
 
-            /**
-            * 게시글 작성일(regDate) 읽기
-            */
             public String getRegDate() {
                 return regDate;
             }
 
-            /**
-            * 게시글 작성일(regDate) 설정
-            */
             public void setRegDate(String regDate) {
                 this.regDate = regDate;
+            }
+
+            public String getFk_user_id() {
+                return fk_user_id;
+            }
+
+            public void setFk_user_id(String fk_user_id) {
+                this.fk_user_id = fk_user_id;
             }
         }
         ```
@@ -271,12 +293,12 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
     - `UserDao.java` - user 테이블 관련 SQL문을 실행하고 결과를 반환.
 
         ```java
-        package localhost.myapp.user;                         // UserDao 클래스가 속한 패키지 선언
+        package localhost.myapp.user; // UserDao 클래스가 속한 패키지 선언
 
-        import localhost.myapp.common.DB;                     // DB 커넥션 풀(DataSource) 제공 클래스 import
+        import localhost.myapp.common.DB; // DB 커넥션 풀(DataSource) 제공 클래스 import
 
-        import javax.sql.DataSource;                          // DataSource 인터페이스
-        import java.sql.*;                                     // JDBC 관련 클래스들 import
+        import javax.sql.DataSource; // DataSource 인터페이스
+        import java.sql.*; // JDBC 관련 클래스들 import
 
         /**
         * UserDao: user 테이블에 대한 CRUD 중 일부 기능을 담당하는 DAO 클래스
@@ -298,14 +320,14 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 // password는 sha2(?,256)으로 서버가 아닌 MySQL에서 해싱 처리함
                 String sql = "INSERT INTO user (id, password, email) VALUES (?, sha2(?, 256), ?)";
 
-                try (Connection con = ds.getConnection();      // 커넥션 풀에서 Connection 가져오기
-                    PreparedStatement ps = con.prepareStatement(sql)) { // 쿼리 준비
+                try (Connection con = ds.getConnection(); // 커넥션 풀에서 Connection 가져오기
+                        PreparedStatement ps = con.prepareStatement(sql)) { // 쿼리 준비
 
-                    ps.setString(1, u.id);                    // 첫 번째 ? = 사용자 ID
-                    ps.setString(2, u.password);              // 두 번째 ? = 평문 password → MySQL sha2()로 해싱됨
-                    ps.setString(3, u.email);                 // 세 번째 ? = email
+                    ps.setString(1, u.id); // 첫 번째 ? = 사용자 ID
+                    ps.setString(2, u.password); // 두 번째 ? = 평문 password → MySQL sha2()로 해싱됨
+                    ps.setString(3, u.email); // 세 번째 ? = email
 
-                    return ps.executeUpdate() == 1;           // INSERT 실행 → 영향받은 행이 1이면 성공
+                    return ps.executeUpdate() == 1; // INSERT 실행 → 영향받은 행이 1이면 성공
                 }
             }
 
@@ -315,28 +337,28 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             */
             public User findById(String id) throws SQLException {
 
-                String sql = "SELECT * FROM user WHERE id=?";  // 특정 id로 조회하는 SQL
+                String sql = "SELECT * FROM user WHERE id=?"; // 특정 id로 조회하는 SQL
 
-                try (Connection con = ds.getConnection();      // 커넥션 가져오기
-                    PreparedStatement ps = con.prepareStatement(sql)) { // 쿼리 준비
+                try (Connection con = ds.getConnection(); // 커넥션 가져오기
+                        PreparedStatement ps = con.prepareStatement(sql)) { // 쿼리 준비
 
-                    ps.setString(1, id);                      // 첫 번째 ? = 검색할 사용자 ID
+                    ps.setString(1, id); // 첫 번째 ? = 검색할 사용자 ID
 
-                    try (ResultSet rs = ps.executeQuery()) {  // SELECT 실행 후 결과를 ResultSet으로 받음
+                    try (ResultSet rs = ps.executeQuery()) { // SELECT 실행 후 결과를 ResultSet으로 받음
 
-                        if (rs.next()) {                     // 조회 결과가 있을 경우
+                        if (rs.next()) { // 조회 결과가 있을 경우
 
-                            User u = new User();             // User DTO 객체 생성
+                            User u = new User(); // User DTO 객체 생성
 
-                            u.idx = rs.getInt("idx");        // idx 컬럼 값 저장
-                            u.id = rs.getString("id");       // id 저장
+                            u.idx = rs.getInt("idx"); // idx 컬럼 값 저장
+                            u.id = rs.getString("id"); // id 저장
                             u.email = rs.getString("email"); // email 저장
                             u.regDate = rs.getString("reg_date"); // 가입일 저장
 
-                            return u;                        // 완성된 User 객체 반환
+                            return u; // 완성된 User 객체 반환
                         }
 
-                        return null;                         // 조회 결과 없음 → null 반환
+                        return null; // 조회 결과 없음 → null 반환
                     }
                 }
             }
@@ -349,22 +371,22 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
                 String sql = "SELECT idx FROM user WHERE id=?"; // 존재 여부 조회 → idx만 SELECT
 
-                try (Connection con = ds.getConnection();        // 커넥션 가져오기
-                    PreparedStatement ps = con.prepareStatement(sql)) { // 쿼리 준비
+                try (Connection con = ds.getConnection(); // 커넥션 가져오기
+                        PreparedStatement ps = con.prepareStatement(sql)) { // 쿼리 준비
 
-                    ps.setString(1, id);                        // 첫 번째 ? = 아이디
+                    ps.setString(1, id); // 첫 번째 ? = 아이디
 
-                    try (ResultSet rs = ps.executeQuery()) {    // SELECT 실행
+                    try (ResultSet rs = ps.executeQuery()) { // SELECT 실행
 
-                        if (rs.next()) {                        // 결과 존재 시
+                        if (rs.next()) { // 결과 존재 시
 
-                            User u = new User();                // User 객체 생성
-                            u.idx = rs.getInt("idx");           // idx만 저장하여 빠르게 체크
+                            User u = new User(); // User 객체 생성
+                            u.idx = rs.getInt("idx"); // idx만 저장하여 빠르게 체크
 
-                            return u;                           // 존재하면 User 반환
+                            return u; // 존재하면 User 반환
                         }
 
-                        return null;                            // 존재하지 않으면 null
+                        return null; // 존재하지 않으면 null
                     }
                 }
             }
@@ -378,21 +400,20 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 // 입력된 패스워드를 sha2(?,256)으로 해싱해서 DB에 저장된 값과 비교
                 String sql = "SELECT COUNT(*) FROM user WHERE id=? AND password=sha2(?, 256)";
 
-                try (Connection con = ds.getConnection();        // 커넥션 가져오기
-                    PreparedStatement ps = con.prepareStatement(sql)) { // SQL 준비
+                try (Connection con = ds.getConnection(); // 커넥션 가져오기
+                        PreparedStatement ps = con.prepareStatement(sql)) { // SQL 준비
 
-                    ps.setString(1, id);                         // 첫 번째 ? = ID
-                    ps.setString(2, password);                   // 두 번째 ? = 평문 password (SQL에서 해싱됨)
+                    ps.setString(1, id); // 첫 번째 ? = ID
+                    ps.setString(2, password); // 두 번째 ? = 평문 password (SQL에서 해싱됨)
 
-                    try (ResultSet rs = ps.executeQuery()) {     // SELECT 실행 → COUNT(*) 결과
+                    try (ResultSet rs = ps.executeQuery()) { // SELECT 실행 → COUNT(*) 결과
 
-                        rs.next();                               // COUNT(*)는 무조건 한 행이므로 next() 한 번 호출
-                        return rs.getInt(1) == 1;                // 결과가 1이면 로그인 성공, 0이면 실패
+                        rs.next(); // COUNT(*)는 무조건 한 행이므로 next() 한 번 호출
+                        return rs.getInt(1) == 1; // 결과가 1이면 로그인 성공, 0이면 실패
                     }
                 }
             }
         }
-
         ```
 
     - `BoardDao.java` - board 테이블 관련 SQL문을 실행하고 결과를 반환.
@@ -425,7 +446,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 int offset = Math.max(0, (page - 1) * limit); // OFFSET 계산 (page=1이면 offset=0)
 
                 // DESC 정렬로 최신 글 먼저 → LIMIT/OFFSET으로 페이징
-                String sql = "SELECT idx, title, content, reg_date " +
+                String sql = "SELECT idx, title, content, reg_date, fk_user_id " +
                         "FROM board " +
                         "ORDER BY idx DESC " +
                         "LIMIT ? OFFSET ?";
@@ -448,6 +469,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                             b.title = rs.getString("title"); // DB title → Board.title
                             b.content = rs.getString("content"); // DB content → Board.content
                             b.regDate = rs.getString("reg_date");// DB reg_date → Board.regDate
+                            b.fk_user_id = rs.getString("fk_user_id"); // DB fk_user_id → Board.fk_user_id
 
                             list.add(b); // 리스트에 객체 추가
                         }
@@ -477,6 +499,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                             Board b = new Board(); // Board 객체 생성
 
                             b.idx = rs.getInt("idx"); // idx 컬럼 가져와 저장
+                            b.fk_user_id = rs.getString("fk_user_id"); // fk_user_id 컬럼 가져와 저장
                             b.title = rs.getString("title"); // title 저장
                             b.content = rs.getString("content"); // content 저장
                             b.regDate = rs.getString("reg_date");// reg_date 저장
@@ -494,13 +517,14 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             */
             public Integer insert(Board b) throws SQLException {
 
-                String sql = "INSERT INTO board (title, content) VALUES (?, ?)"; // INSERT SQL
+                String sql = "INSERT INTO board (title, content, fk_user_id) VALUES (?, ?, ?)"; // INSERT SQL
 
                 try (Connection con = ds.getConnection(); // 커넥션 얻기
                         PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) { // SQL 준비
 
                     ps.setString(1, b.title); // 첫 번째 ? = title
                     ps.setString(2, b.content); // 두 번째 ? = content
+                    ps.setString(3, b.fk_user_id);
 
                     int affected = ps.executeUpdate(); // INSERT 실행
 
@@ -659,53 +683,65 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
     package localhost.myapp.dto;
 
     /**
-    * 공통 서비스/API 응답 DTO
+    * 공통 API 응답 DTO (제네릭 제거 버전)
     *
+    * - 모든 API 응답을 동일한 형태로 통일
     * - success : 성공 여부
-    * - message : 메시지 (성공/실패 이유)
-    * - data : 실제 담을 데이터 (제네릭)
-    *
-    * 예)
-    * ServiceResult<Integer> : 새로 생성된 게시글 idx
-    * ServiceResult<Board> : 게시글 한 건
-    * ServiceResult<List<Board>> : 게시글 목록
+    * - message : 설명 메시지
+    * - data : 실제 데이터 (Object)
+    * - idx : 새로 생성된 리소스(PK) 번호 (게시글 생성 시 등)
     */
-    public class ServiceResult<T> {
+    public class ServiceResult {
 
         /** 요청 성공 여부 */
         public boolean success;
 
-        /** 메시지 (성공/실패 이유) */
+        /** 성공 또는 실패 메시지 */
         public String message;
 
-        /** 실제 데이터 (없으면 null) */
-        public T data;
+        /** 응답 데이터 (형식 제한 없음) */
+        public Object data;
 
+        /** 새로 생성된 리소스의 식별자 (예: 게시글 idx) */
+        public Integer idx;
+
+        /** 기본 생성자 */
         public ServiceResult() {
         }
 
-        public ServiceResult(boolean success, String message, T data) {
+        /** 전체 필드 설정 생성자 */
+        public ServiceResult(boolean success, String message, Object data, Integer idx) {
             this.success = success;
             this.message = message;
             this.data = data;
+            this.idx = idx;
         }
 
-        /** ✔ 성공 (데이터만 있는 버전) */
-        public static <T> ServiceResult<T> ok(T data) {
-            return new ServiceResult<>(true, null, data);
+        /** ✔ 성공 (메시지 + data 포함) */
+        public static ServiceResult ok(String message, Object data) {
+            return new ServiceResult(true, message, data, null);
         }
 
-        /** ✔ 성공 (메시지 + 데이터) */
-        public static <T> ServiceResult<T> ok(String message, T data) {
-            return new ServiceResult<>(true, message, data);
+        /** ✔ 성공 (data만) */
+        public static ServiceResult ok(Object data) {
+            return new ServiceResult(true, null, data, null);
         }
 
-        /** ❌ 실패 (메시지만, data=null) */
-        public static <T> ServiceResult<T> fail(String message) {
-            return new ServiceResult<>(false, message, null);
+        /** ✔ 성공 (메시지 + 생성된 idx 포함) */
+        public static ServiceResult okWithId(String message, int idx) {
+            return new ServiceResult(true, message, null, idx);
+        }
+
+        /** ✔ 성공 (메시지만) */
+        public static ServiceResult ok(String message) {
+            return new ServiceResult(true, message, null, null);
+        }
+
+        /** ❌ 실패 (메시지만) */
+        public static ServiceResult fail(String message) {
+            return new ServiceResult(false, message, null, null);
         }
     }
-
     ```
 
 - `UserService.java`
@@ -745,7 +781,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         * - ServiceResult 로 성공/실패 메시지 반환
         * ------------------------------
         */
-        public ServiceResult<Void> register(String id, String password, String email) {
+        public ServiceResult register(String id, String password, String email) {
             try {
                 // 1) 기본 형식 검증
                 validateRegister(id, password, email);
@@ -764,9 +800,9 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 // 4) DB 저장
                 boolean ok = dao.insert(u);
 
-                // 5) 결과 반환 (data는 사용하지 않으므로 null)
+                // 5) 결과 반환 (data 사용 안 하므로 메시지만)
                 return ok
-                        ? ServiceResult.ok("회원가입 성공", null)
+                        ? ServiceResult.ok("회원가입 성공")
                         : ServiceResult.fail("회원가입 실패");
 
             } catch (IllegalArgumentException e) {
@@ -787,7 +823,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         * - 성공/실패를 ServiceResult 로 반환
         * ------------------------------
         */
-        public ServiceResult<Void> login(String id, String password) {
+        public ServiceResult login(String id, String password) {
             try {
                 // 필수 입력값 체크
                 if (id == null || id.trim().isEmpty() ||
@@ -799,9 +835,9 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 // DAO에서 비밀번호 SHA2 비교
                 boolean ok = dao.login(id.trim(), password);
 
-                // data는 사용하지 않으므로 null
+                // data 사용 안 하므로 메시지만 반환
                 return ok
-                        ? ServiceResult.ok("로그인 성공", null)
+                        ? ServiceResult.ok("로그인 성공")
                         : ServiceResult.fail("로그인 실패");
 
             } catch (SQLException e) {
@@ -871,14 +907,17 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             return dao.findById(idx);
         }
 
-        /** 생성 : 성공 시 새 idx 가 data로 들어감 */
-        public ServiceResult<Integer> create(String title, String content) {
+        /**
+        * 생성 : 성공 시 새 idx 가 ServiceResult.idx 에 들어감
+        */
+        public ServiceResult create(String title, String content, String fk_user_id) {
             try {
                 validate(title, content);
 
                 Board b = new Board();
                 b.title = title.trim();
                 b.content = content.trim();
+                b.fk_user_id = fk_user_id;
 
                 Integer newId = dao.insert(b);
 
@@ -886,7 +925,8 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                     return ServiceResult.fail("게시글 등록에 실패했습니다.");
                 }
 
-                return ServiceResult.ok("게시글이 등록되었습니다.", newId);
+                // ✔ idx 필드에 새로 생성된 PK 저장
+                return ServiceResult.okWithId("게시글이 등록되었습니다.", newId);
 
             } catch (IllegalArgumentException e) {
                 return ServiceResult.fail(e.getMessage());
@@ -896,11 +936,28 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             }
         }
 
-        /** 수정 */
-        public ServiceResult<Void> update(int idx, String title, String content) {
+        /**
+        * 수정
+        */
+        public ServiceResult update(int idx, String title, String content, String fk_user_id) {
             try {
                 if (idx <= 0) {
                     return ServiceResult.fail("잘못된 게시글 번호입니다.");
+                }
+
+                // 1) 기존 게시글 조회
+                Board b_exists = get(idx); // idx 로 게시물 정보 가져오기
+
+                // 게시물이 없으면
+                if (b_exists == null) {
+                    return ServiceResult.fail("게시물이 존재하지 않습니다.");
+                }
+
+                // 2) 권한 체크
+                // - fk_user_id 컬럼이 null이면 누구나 수정 가능
+                // - null이 아니면 세션에서 전달받은 fk_user_id와 같을 때만 가능
+                if (!canModify(b_exists, fk_user_id)) {
+                    return ServiceResult.fail("본인 게시글만 수정할 수 있습니다.");
                 }
 
                 validate(title, content);
@@ -913,10 +970,11 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 boolean ok = dao.update(b);
 
                 if (!ok) {
-                    return ServiceResult.fail("게시물이 존재하지 않습니다.");
+                    return ServiceResult.fail("게시글 수정에 실패했습니다.");
                 }
 
-                return ServiceResult.ok("게시글이 수정되었습니다.", null);
+                // 수정은 별도 data, idx 필요 없으니 메시지만
+                return ServiceResult.ok("게시글이 수정되었습니다.");
 
             } catch (IllegalArgumentException e) {
                 return ServiceResult.fail(e.getMessage());
@@ -926,20 +984,38 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             }
         }
 
-        /** 삭제 */
-        public ServiceResult<Void> delete(int idx) {
+        /**
+        * 삭제
+        */
+        public ServiceResult delete(int idx, String fk_user_id) {
             try {
                 if (idx <= 0) {
                     return ServiceResult.fail("잘못된 게시글 번호입니다.");
                 }
 
-                boolean ok = dao.delete(idx);
+                // 1) 기존 게시글 조회
+                Board b_exists = get(idx); // idx 로 게시물 정보 가져오기
 
-                if (!ok) {
+                // 게시물이 없으면
+                if (b_exists == null) {
                     return ServiceResult.fail("게시물이 존재하지 않습니다.");
                 }
 
-                return ServiceResult.ok("게시글이 삭제되었습니다.", null);
+                // 2) 권한 체크
+                // - fk_user_id 컬럼이 null이면 누구나 수정 가능
+                // - null이 아니면 세션에서 전달받은 fk_user_id와 같을 때만 가능
+                if (!canModify(b_exists, fk_user_id)) {
+                    return ServiceResult.fail("본인 게시글만 삭제할 수 있습니다.");
+                }
+
+                boolean ok = dao.delete(idx);
+
+                if (!ok) {
+                    return ServiceResult.fail("게시글 삭제에 실패했습니다.");
+                }
+
+                // 삭제도 메시지만
+                return ServiceResult.ok("게시글이 삭제되었습니다.");
 
             } catch (SQLException e) {
                 return ServiceResult.fail("데이터베이스 오류: " + e.getMessage());
@@ -963,12 +1039,46 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 throw new IllegalArgumentException("제목은 45자 이하로 입력해주세요.");
             }
         }
+
+        /**
+        * 게시글 수정/삭제 권한 체크
+        * - DB fk_user_id == null → 누구나 가능 (true)
+        * - DB fk_user_id != null → 세션 fk_user_id와 같을 때만 가능
+        */
+        private boolean canModify(Board b, String fk_user_id) {
+
+            // 소유자가 없는 글 (fk_user_id가 null) → 아무나 수정/삭제 가능
+            if (b.fk_user_id == null) {
+                return true;
+            }
+
+            // 소유자가 있는 글인데, 세션에 사용자 정보가 없다 → 권한 없음
+            if (fk_user_id == null) {
+                return false;
+            }
+
+            // 둘 다 있을 때는 동일한지 비교
+            return b.fk_user_id.equals(fk_user_id);
+        }
+
     }
     ```
 
 - `/ex/service.java` - Service 코드 테스트
     ```java
     package localhost.myapp.ex;
+
+    import java.io.IOException;
+
+    import com.google.gson.Gson;
+
+    import jakarta.servlet.annotation.WebServlet;
+    import jakarta.servlet.http.HttpServlet;
+    import jakarta.servlet.http.HttpServletRequest;
+    import jakarta.servlet.http.HttpServletResponse;
+
+    import localhost.myapp.dto.ServiceResult;
+    import localhost.myapp.user.UserService;
 
     @WebServlet("/ex/service")
     public class service extends HttpServlet {
@@ -989,8 +1099,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
             resp.setContentType("application/json; charset=UTF-8");
 
             // 3) 서비스 레이어 호출 (회원가입 로직 실행 예제)
-            // ServiceResult<Void> → data 는 null
-            ServiceResult<Void> r = userService.register("test1", "test1", "test@test.com");
+            ServiceResult r = userService.register("test1", "test1", "test@test.com");
 
             // 4) 응답 객체(ServiceResult)를 JSON 문자열로 변환
             String json = gson.toJson(r);
@@ -1136,7 +1245,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
                 /** -------------------- 로그인 처리 -------------------- */
                 case "/login":
                     try {
-                        ServiceResult<Void> r = service.login(id, password);
+                        ServiceResult r = service.login(id, password);
 
                         if (r.success) {
                             // 로그인 성공 → 세션에 id 저장
@@ -1162,7 +1271,7 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
 
                     try {
                         // 제네릭 타입 맞추기: ServiceResult<Void>
-                        ServiceResult<Void> r = service.register(id, password, email);
+                        ServiceResult r = service.register(id, password, email);
 
                         if (r.success) {
                             // 회원가입 성공 → 자동 로그인 비슷하게 세션에 id 저장
@@ -1420,12 +1529,14 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         private void create(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
 
+            HttpSession session = req.getSession();
+
             String title = req.getParameter("title");
             String content = req.getParameter("content");
+            String fk_user_id = (String) session.getAttribute("id");
 
-            ServiceResult<Integer> result = service.create(title, content);
+            ServiceResult result = service.create(title, content, fk_user_id);
 
-            HttpSession session = req.getSession();
             String ctx = req.getContextPath();
 
             if (result.success) {
@@ -1442,13 +1553,15 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         private void update(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
 
+            HttpSession session = req.getSession();
+
             int idx = parseInt(req.getParameter("idx"), 0);
             String title = req.getParameter("title");
             String content = req.getParameter("content");
+            String fk_user_id = (String) session.getAttribute("id");
 
-            ServiceResult<Void> result = service.update(idx, title, content);
+            ServiceResult result = service.update(idx, title, content, fk_user_id);
 
-            HttpSession session = req.getSession();
             String ctx = req.getContextPath();
 
             if (result.success) {
@@ -1464,10 +1577,12 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
         private void delete(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
 
-            int idx = parseInt(req.getParameter("idx"), 0);
-            ServiceResult<Void> result = service.delete(idx);
-
             HttpSession session = req.getSession();
+            String fk_user_id = (String) session.getAttribute("id");
+
+            int idx = parseInt(req.getParameter("idx"), 0);
+            ServiceResult result = service.delete(idx, fk_user_id);
+
             String ctx = req.getContextPath();
 
             if (result.success)
@@ -1521,57 +1636,180 @@ MVC 패턴으로 웹사이트를 구축할때 순서를 알아보고 회원가�
     - `write.jsp`
 
 
-
-
-
 ## 🧩 실습 / 과제
 
-- 로그인 기능이 포함된 게시판 사이트 만들기
+### 1. 로그인한 사용자만 글쓰기 가능하도록 하기
+- 글쓰기 버튼을 눌렀을때, 로그인이 필요합니다 경고창을 띄우거나 로그인페이지로 이동시키기
 
-- 라우팅 표
+### 2. 글쓰기 해서 `Board` 테이블에 insert 될때 누가 작성했는지 남기기 
 
-    > `{ctx}`는 `req.getContextPath()`
+- 작업순서
+    1. DB 에 컬럼 추가. ( 컬럼이름: fk_user_id, null 가능하게 )
 
-1. 게시판 (`BoardController.java` → `/board/*`)
+    2. DTO 수정 ( `Board.java` ) - fk_user_id 부분 있는지 체크 
+    3. DAO 수정 ( `BoardDao.java` ) - sql insert 하는 부분 체크
+    4. Service 수정 ( `BoardService.java` ) - create 하는 부분 체크 
+    5. Controller 수정 ( `BoardController.java` ) - service 메서드 실행 시킬때 세션값 넘겨주기
 
-    1-1. `GET` 요청
-    | HTTP | URL                           | 설명                    | 컨트롤러 메서드         | 뷰/처리                             | 주요 파라미터                |
-    | ---- | ----------------------------- | --------------------- | ---------------- | -------------------------------- | ---------------------- |
-    | GET  | `{ctx}/board(/)`              | 기본 진입 → 목록으로 이동       | `doGet` → `list` | `list.jsp`                       | `page`(선택), `size`(선택) |    
-    | GET  | `{ctx}/board/list`            | 게시글 목록                | `list`           | `/WEB-INF/view/board/list.jsp`   | `page`, `size`         |
-    | GET  | `{ctx}/board/detail?idx={번호}` | 게시글 상세                | `detail`         | `/WEB-INF/view/board/detail.jsp` | `idx` (필수)             |
-    | GET  | `{ctx}/board/write`           | 글쓰기 폼                 | `showWriteForm`  | `/WEB-INF/view/board/write.jsp`  | -                      |
-    | GET  | `{ctx}/board/edit?idx={번호}`   | 수정 폼                  | `showEditForm`   | `/WEB-INF/view/board/edit.jsp`   | `idx` (필수)             |
+- 세션값 가져오기
+    ```java
+    HttpSession session = req.getSession();
+    
+    ...
 
-    1-2. `POST` 요청
-    > 공통: action 파라미터로 분기 (create/update/delete)
+    String fk_user_id = (String) session.getAttribute("id");
+    ```
 
-    | HTTP | URL                             | 설명     | 컨트롤러 메서드 | 리다이렉트 위치                                                               | 주요 파라미터                                    |
-    | ---- | ------------------------------- | ------ | -------- | ---------------------------------------------------------------------- | ------------------------------------------ |
-    | POST | `{ctx}/board` + `action=create` | 게시글 생성 | `create` | 성공: `{ctx}/board/list`<br>실패: `{ctx}/board/write`                      | `title`, `content`, `action=create`        |
-    | POST | `{ctx}/board` + `action=update` | 게시글 수정 | `update` | 성공: `{ctx}/board/detail?idx={idx}`<br>실패: `{ctx}/board/edit?idx={idx}` | `idx`, `title`, `content`, `action=update` |
-    | POST | `{ctx}/board` + `action=delete` | 게시글 삭제 | `delete` | `{ctx}/board/list`                                                     | `idx`, `action=delete`                     |
-    | POST | `{ctx}/board` (action 없음/이상)    | 잘못된 요청 | `doPost` | 400 Bad Request                                                        | -                                          |
+### 3. 글 수정하기 또는 삭제하기 눌렀을때 본인이 작성한 게시물만 삭제하도록 수정하기
 
-2. 사용자 (`UserController.java` → `/user/*`)
+- 백엔드 작업순서 
 
-    2-1. `GET` 요청
-    | HTTP | URL                      | 설명               | 컨트롤러 메서드               | 뷰/처리                                                   | 비고                 |
-    | ---- | ------------------------ | ---------------- | ---------------------- | ------------------------------------------------------ | ------------------ |
-    | GET  | `{ctx}/user`             | 기본 → 로그인으로 리다이렉트 | `doGet` (path="/")     | `redirect` → `{ctx}/user/login`                        | -                  |
-    | GET  | `{ctx}/user/`            | 위와 동일            | `doGet` (normPath="/") | `redirect` → `{ctx}/user/login`                        | -                  |
-    | GET  | `{ctx}/user/login`       | 로그인 폼            | `doGet`                | `/WEB-INF/view/user/login.jsp`                         | -                  |
-    | GET  | `{ctx}/user/login_ok`    | 로그인 성공 페이지       | `doGet`                | `/WEB-INF/view/user/login_ok.jsp`                      | 세션에 `id` 있어야 정상 흐름 |
-    | GET  | `{ctx}/user/register`    | 회원가입 폼           | `doGet`                | `/WEB-INF/view/user/register.jsp`                      | -                  |
-    | GET  | `{ctx}/user/register_ok` | 회원가입 완료 페이지      | `doGet`                | `/WEB-INF/view/user/register_ok.jsp`                   | -                  |
-    | GET  | `{ctx}/user/logout`      | 로그아웃             | `doGet`                | 세션 `invalidate()` 후<br>`redirect` → `{ctx}/user/login` | -                  |
-    | GET  | `{ctx}/user/*` (이외)     | 없는 페이지           | `doGet`                | 404 Not Found                                          | -                  |
+    1. DAO 수정 ( `BoardDao.java` ) - findById 하는 부분에서 아래 추가
+        
+        ```java
+        b.fk_user_id = rs.getString("fk_user_id"); // fk_user_id 컬럼 가져와 저장`
+        ```
+    2. Service 수정 ( `BoardService.java` ) - update, delete 하는 부분에서 검증 단계 추가
 
-    2-2. `POST` 요청
-    > `/login`, `/register` 두 가지만 처리
 
-    | HTTP | URL                   | 설명      | 컨트롤러 메서드                    | 리다이렉트 위치                                                  | 주요 파라미터                   |
-    | ---- | --------------------- | ------- | --------------------------- | --------------------------------------------------------- | ------------------------- |
-    | POST | `{ctx}/user/login`    | 로그인 처리  | `doPost` (path="/login")    | 성공: `{ctx}/user/login_ok`<br>실패: `{ctx}/user/login`       | `id`, `password`          |
-    | POST | `{ctx}/user/register` | 회원가입 처리 | `doPost` (path="/register") | 성공: `{ctx}/user/register_ok`<br>실패: `{ctx}/user/register` | `id`, `password`, `email` |
-    | POST | `{ctx}/user/*` (이외)   | 잘못된 요청  | `doPost` default            | 400 Bad Request                                           | -                         |
+        - update,delete 권한체크 예시)
+
+            ```java
+            {
+                ...
+
+                // 1) 기존 게시글 조회
+                Board b_exists = get(idx); // idx 로 게시물 정보 가져오기
+
+                // 게시물이 없으면
+                if (b_exists == null) {
+                    return ServiceResult.fail("게시물이 존재하지 않습니다.");
+                }
+
+                // 2) 권한 체크
+                // - fk_user_id 컬럼이 null이면 누구나 수정 가능
+                // - null이 아니면 세션에서 전달받은 fk_user_id와 같을 때만 가능
+                if (!canModify(b_exists, fk_user_id)) {
+                    return ServiceResult.fail("본인 게시글만 수정할 수 있습니다.");
+                }
+                
+                ...
+            }
+            ```
+
+        - `canModify 메서드` - 검증 메서드
+            ```java                
+            /** 
+            * 게시글 수정/삭제 권한 체크
+            * - DB fk_user_id == null  → 누구나 가능 (true)
+            * - DB fk_user_id != null  → 세션 fk_user_id와 같을 때만 가능
+            */
+            private boolean canModify(Board b, String fk_user_id) {
+                // 소유자가 없는 글 (fk_user_id가 null) → 아무나 수정/삭제 가능
+                if (b.fk_user_id == null) {
+                    return true;
+                }
+
+                // 소유자가 있는 글인데, 세션에 사용자 정보가 없다 → 권한 없음
+                if (fk_user_id == null) {
+                    return false;
+                }
+
+                // 둘 다 있을 때는 동일한지 비교
+                return b.fk_user_id.equals(fk_user_id);
+            }
+            ```
+
+        
+
+    2. Controller 수정 ( `BoardController.java` )
+
+        - BoardServce.java 로 세션값 user_id 넘겨주기
+
+- 프론트엔드 작업순서 
+
+    1. 권한있는 글일때 수정하기,삭제하기 버튼 보이도록 `detail.jsp` 파일 수정 
+
+        - 수정하기 또는 삭제하기 또는 보이는 조건
+            - DB fk_user_id == null  → 누구나 보이게
+            - 세션에 user_id 가 있고 DB fk_user_id 랑 같을때 → 보이게
+
+        - jstl 문법
+            ```html
+            <!-- 수정 / 삭제는 권한 있을 때만 보이도록 -->
+            <c:if
+                test="${empty board.fk_user_id 
+                or (not empty sessionScope.id and board.fk_user_id eq sessionScope.id)}"
+            >
+                ...
+            </c:if>
+            ```
+
+    2. 소유자 표시 `detail.jsp` 파일 수정 
+
+        - jstl 문법
+
+            ```html
+            <!-- 작성자 (fk_user_id 있을 때만 표시) -->
+            <c:if test="${not empty board.fk_user_id}">
+            <div
+                class="subtitle"
+                style="font-size: 0.9rem; color: #6b7280; margin-bottom: 4px"
+            >
+                작성자:
+                <c:out value="${board.fk_user_id}" />
+            </div>
+            </c:if>
+            ```
+
+
+### 4. 리스트에 작성자 표시
+
+- 백엔드 작업순서
+
+    1. DTO 확인 ( fk_user_id 추가되어 있으면 패스 )
+    2. DAO 수정 ( `BoardDao.java` ) - findAll 하는 부분에서 쿼리문 수정 및 반환값 추가
+
+        ```java
+        ...
+        String sql = "SELECT idx, title, content, reg_date, fk_user_id " +
+                "FROM board " +
+                "ORDER BY idx DESC " +
+                "LIMIT ? OFFSET ?";
+        ...        
+        b.fk_user_id = rs.getString("fk_user_id"); // DB fk_user_id → Board.fk_user_id
+        ...
+        ```
+
+- 프론트엔드 작업순서
+
+    1. 리스트에서 작성자 보이게 - `list.jsp` 파일 수정
+
+        - table 헤더에 작성자 칼럼 `<th>` 부분 추가
+
+            ```
+            <th
+                style="
+                    text-align: left;
+                    padding: 6px 4px;
+                    border-bottom: 1px solid #e5e7eb;
+                "
+                >
+                작성자
+            </th>
+            ```
+
+        - forEach 내부에 작성자 출력하는 `<td>` 추가
+
+            ```html
+            <td
+                style="
+                    padding: 6px 4px;
+                    border-bottom: 1px solid #f3f4f6;
+                    width: 80px;
+                "
+                >
+                <c:out value="${b.fkUserId}" />
+            </td>
+
+            ```

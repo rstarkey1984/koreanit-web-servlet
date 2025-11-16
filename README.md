@@ -45,7 +45,7 @@
 
 2. [Fetch를 이용한 API 요청 / 응답](50-vue-project/02-vue-fetch.md)
 
-3. [컴포넌트 기반 UI 개발 및 API 데이터 렌더링](50-vue-project/03-vue-component-api.md)
+3. [Vue 3 + 컴포넌트 기반 + 서블릿 API 연결 실습](50-vue-project/03-vue-component-api.md)
 
 
 ## 🎯 학습 목표

@@ -119,3 +119,24 @@ th {
   text-decoration: underline;
   color: var(--primary);
 }
+
+/* ===== 알림 박스 ===== */
+.alert {
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.alert-error {
+  background-color: #fee2e2; /* 연한 빨간 배경 */
+  color: #b91c1c; /* 진한 빨간 글씨 */
+  border: 1px solid #fecaca;
+}
+
+.alert-success {
+  background-color: #dcfce7; /* 연한 초록 배경 */
+  color: #166534; /* 진한 초록 글씨 */
+  border: 1px solid #bbf7d0;
+}

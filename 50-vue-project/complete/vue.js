@@ -332,6 +332,8 @@ createApp({
                     method: "DELETE",
                 });
 
+                console.log(body);
+                4;
                 if (!body.success) {
                     boardError.value = body.message || "삭제 실패";
                     return;

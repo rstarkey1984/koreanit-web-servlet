@@ -23,7 +23,7 @@
 
 - Fetch API 특징 (중요 4개)
 
-    1. Promise 기반
+    1. `Promise` 기반
 
         - 콜백 지옥 없이 .then(), .catch(), 그리고 async/await 사용 가능.
 
@@ -54,6 +54,87 @@
     ```js
     await get_board(); // 게시물 목록 조회
     ```
+    - get_board 함수 실행 앞에 `await` 를 붙이는 이유
+
+        > fetchBoardList 안에 fetch 내부 구조가 `Promiss` 로 되어 있기 때문에 항상 `Promiss` 라는 객체를 반환한다. 하지만 앞에 `await` 를 붙이면 `Promiss` 를 반환하지 않고 기다렸다가 실제 응답이 오면 값을 반환한다.
+
+        - `async/await` 예시
+
+            ```js
+            async function test() {
+                console.log("1 내부 시작");
+                const res = await fetch("/api/board");
+                console.log("2 내부 fetch 끝남");
+            }
+
+            test();
+            console.log("3 바깥 코드 즉시 실행");
+            ```
+            
+            출력결과
+            ```
+            1 내부 시작
+            3 바깥 코드 즉시 실행            
+            2 내부 fetch 끝남
+            ```
+
+        - `Promise` 버전 `then` 체인 예시 ( `await` 없음 )
+            ```js
+            function test() {
+                console.log("1 내부 시작");
+
+                fetch("/api/board")
+                    .then(res => {
+                        console.log("2 내부 fetch 끝남");
+                        return res;  // json() 호출 안 했으므로 같은 위치
+                    })
+                    .catch(err => {
+                        console.error("요청 실패:", err);
+                    });
+            }
+            test();
+            console.log("3 바깥 코드 즉시 실행");
+            ```
+
+    
+- `Callback` → `Promise` → `async/await` 자바스크립트 비동기 코드의 역사
+    1. 콜백(`callback`) 시절 - 비동기 코드
+
+        > 너무 복잡 → "콜백 지옥"
+        ```js
+        fetch('/a', res => {
+            fetch('/b', res2 => {
+                fetch('/c', res3 => {
+                    // 콜백 지옥
+                });
+            });
+        });
+        ```
+    2. `Promise` 탄생 - ES6(2015) - 콜백 지옥을 해결하기 위해 등장
+        > 많이 좋아졌지만 then 체인이 길어짐
+        ```js
+        fetch('/a')
+            .then(res => fetch('/b'))
+            .then(res2 => fetch('/c'))
+            .then(res3 => { ... })
+            .catch(err => console.error(err));
+        ```
+
+    3. `async/await` 등장 - ES2017 - Promise 위에 만들어진 “편한 문법”
+        > 동기 코드처럼 자연스럽게 읽힘. 하지만 내부적으로는 여전히 `Promise`고 더 읽기 쉽게 만든 문법.
+        ```js
+        async function test() {
+            try {
+                const a = await fetch('/a');
+                const b = await fetch('/b');
+                const c = await fetch('/c');
+
+                console.log(a, b, c);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        ```
 
 ## 2. 기본 사용법 (GET / POST / PUT / DELETE)
 - JSON Body + POST ( 게시물 등록 )
@@ -394,7 +475,7 @@
 
         - `v-for`로 뉴스 목록 렌더링
 
-        - `v-if` / `v-else-if` 로 로딩/에러/빈 데이터 처리
+        - `v-if` / `v-else-if` 로 로딩/에러/빈 데이터 처리  
 
 
 ---
@@ -412,9 +493,7 @@
 
 ## 🧩 실습 / 과제
 
-아래 순서대로 차근차근 따라 해보세요.
-
-브라우저 콘솔에서 Fetch 연습
+브라우저 콘솔에서 Fetch 연습 ( 아래 순서대로 차근차근 따라 해보세요 )
 
 1. 크롬 개발자 도구(DevTools) → Console 탭을 연다.
 2. 오늘 만든 `get_board`, `post_board`, `put_board`, `delete_board` 함수를 이용해 본다.
@@ -536,3 +615,15 @@
         ```
 
     
+- ### API 엔드포인트
+
+    | 기능     | 메서드    | 엔드포인트              | 요청 바디               |
+    | ------ | ------ | ------------------ | ------------------- |
+    | 회원가입   | POST   | /api/user/register | id, password, email |
+    | 로그인    | POST   | /api/user/login    | id, password        |
+    | 로그아웃   | POST   | /api/user/logout   | X                   |
+    | 게시글 목록 | GET    | /api/board         | page, size          |
+    | 게시글 조회 | GET    | /api/board/{id}    | X                   |
+    | 게시글 작성 | POST   | /api/board         | title, content      |
+    | 게시글 수정 | PUT    | /api/board/{id}    | title, content      |
+    | 게시글 삭제 | DELETE | /api/board/{id}    | X                   |

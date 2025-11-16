@@ -40,180 +40,253 @@ Servlet API 에서 CRUD 구현하기 with MySQL
 `UserAPI.java`
 
 ```java
-package localhost.myapp.api; 
-// 이 클래스가 속한 패키지 선언. API 관련 코드를 모아둔 패키지.
+package localhost.myapp.api;
+// API 서블릿들을 모아둔 패키지.
 
-import localhost.myapp.user.UserService; 
-// 사용자 로직(회원가입/로그인)을 처리하는 서비스 클래스 import.
-import localhost.myapp.dto.ServiceResult; 
-// 성공/실패 여부를 공통적으로 전달하기 위한 DTO 클래스 import.
+import localhost.myapp.user.UserService;
+import localhost.myapp.dto.ServiceResult;
+// 사용자 비즈니스 로직(UserService), 공통 응답 DTO(ServiceResult) import.
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-// JSON 파싱/생성을 위해 Gson 라이브러리 import.
+// JSON 변환을 위한 Gson 라이브러리.
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
-// Servlet API 사용을 위한 import.
+// 서블릿 애노테이션과 HttpServlet, HttpServletRequest/Response 사용.
 
 import java.io.IOException;
 // 입출력 예외 처리를 위한 import.
 
 /**
-* /api/user/*  
-* - POST /api/user/register : 회원가입  
-* - POST /api/user/login    : 로그인
-*/
-// API 엔드포인트 설명 주석.
-
+ * /api/user/*
+ * - POST /api/user/register : 회원가입
+ * - POST /api/user/login : 로그인
+ * - POST /api/user/logout : 로그아웃
+ */
 @WebServlet("/api/user/*")
-// /api/user/ 로 시작하는 모든 요청을 이 서블릿이 처리하도록 설정.
-
 public class UserAPI extends HttpServlet {
-// HttpServlet 상속하여 doPost, doOptions 등을 오버라이딩.
+    // HttpServlet 을 상속하여 HTTP 요청을 처리하는 UserAPI 클래스.
 
     private final Gson gson = new Gson();
-    // JSON 변환을 위해 Gson 인스턴스를 생성.
+    // JSON 직렬화/역직렬화를 위한 Gson 인스턴스.
 
     private final UserService userService = new UserService();
-    // 비즈니스 로직을 담당하는 UserService 사용.
+    // 비즈니스 로직(회원가입, 로그인 등)을 담당하는 UserService.
 
-    private JsonObject readJson(HttpServletRequest req) throws IOException {
-        // 요청 body(JSON)를 읽어 JsonObject 로 변환하는 메서드.
-        return gson.fromJson(req.getReader(), JsonObject.class);
-        // req.getReader() → HTTP body 읽기, gson.fromJson → JSON 파싱.
+    /**
+     * 요청 바디를 JSON 으로 읽어서
+     * - 성공 시: success=true, data 에 JsonObject 저장
+     * - 실패 시: success=false, message 에 에러 메시지
+     */
+    private ServiceResult readJson(HttpServletRequest req) throws IOException {
+
+        // 1. Content-Type 검사
+        String contentType = req.getContentType();
+        if (contentType == null || !contentType.toLowerCase().startsWith("application/json")) {
+            return ServiceResult.fail("Content-Type 은 application/json 이어야 합니다.");
+        }
+
+        try {
+            JsonElement elem = JsonParser.parseReader(req.getReader());
+
+            // 2. body 비어 있음
+            if (elem == null || elem.isJsonNull()) {
+                return ServiceResult.fail("요청 body 가 비어 있습니다.");
+            }
+
+            // 3. JSON 객체가 아님 (배열/값 등)
+            if (!elem.isJsonObject()) {
+                return ServiceResult.fail("JSON 객체 형식의 body 가 필요합니다. (예: {\"id\":\"user\"})");
+            }
+
+            // 4. 성공 → data 에 JsonObject 넣어서 반환
+            return ServiceResult.ok(elem.getAsJsonObject());
+
+        } catch (JsonParseException e) {
+            // 5. JSON 문법 에러
+            return ServiceResult.fail("잘못된 JSON 형식입니다.");
+        }
     }
 
-    // CORS 허용 설정
+    // ===== CORS 설정 메서드 =====
     private void setCors(HttpServletResponse resp) {
+        // 브라우저에서 다른 Origin 에서 호출할 수 있도록 CORS 허용.
         resp.setHeader("Access-Control-Allow-Origin", "*");
-        // 어떤 도메인이든 요청 허용.
+        // 모든 Origin 허용 (*).
 
         resp.setHeader("Access-Control-Allow-Headers", "Content-Type");
-        // 요청에서 Content-Type 헤더 허용.
+        // 요청에 포함될 수 있는 헤더 중 Content-Type 을 허용.
 
         resp.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-        // 브라우저가 보낼 수 있는 HTTP 메서드 제한.
+        // 허용할 HTTP 메서드 목록 지정.
     }
 
     @Override
     protected void doOptions(HttpServletRequest req, HttpServletResponse resp) {
-        // 브라우저의 CORS preflight 요청(OPTIONS)을 처리.
+        // CORS preflight 요청(OPTIONS 메서드)을 처리.
         setCors(resp);
-        // CORS 헤더 설정.
+        // CORS 허용 헤더 설정.
 
         resp.setStatus(204);
-        // OPTIONS 응답은 body 없이 204 No Content 가 적절.
+        // 응답 본문 없는 성공 응답 204 No Content.
     }
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        // POST 요청 처리. 회원가입/로그인 모두 POST.
+    // ===== 공통 응답 JSON 출력 메서드들 =====
 
-        setCors(resp);
-        // CORS 헤더 설정.
+    private void writeJson(HttpServletResponse resp, int status, ServiceResult body)
+            throws IOException {
+        // HTTP 상태코드와 ServiceResult 구조로 JSON 응답을 내려주는 공통 메서드.
+        resp.setStatus(status);
+        // HTTP 상태 코드 설정.
 
         resp.setContentType("application/json; charset=UTF-8");
-        // 응답이 JSON이며 UTF-8 인코딩 사용한다고 명시.
+        // 응답 Content-Type 설정.
+
+        resp.getWriter().write(gson.toJson(body));
+        // Gson으로 JSON 문자열로 변환하여 클라이언트에 전송.
+    }
+
+    private void ok(HttpServletResponse resp, ServiceResult body) throws IOException {
+        // 200 OK + ServiceResult 그대로 응답.
+        writeJson(resp, 200, body);
+    }
+
+    private void created(HttpServletResponse resp, ServiceResult body) throws IOException {
+        // 201 Created + ServiceResult 그대로 응답.
+        writeJson(resp, 201, body);
+    }
+
+    private void badRequest(HttpServletResponse resp, String msg) throws IOException {
+        // 400 Bad Request + 실패 응답.
+        writeJson(resp, 400, ServiceResult.fail(msg));
+    }
+
+    private void unauthorized(HttpServletResponse resp, String msg) throws IOException {
+        // 401 Unauthorized + 실패 응답.
+        writeJson(resp, 401, ServiceResult.fail(msg));
+    }
+
+    private void notFound(HttpServletResponse resp, String msg) throws IOException {
+        // 404 Not Found + 실패 응답.
+        writeJson(resp, 404, ServiceResult.fail(msg));
+    }
+
+    private void serverError(HttpServletResponse resp, String msg) throws IOException {
+        // 500 Internal Server Error + 실패 응답.
+        writeJson(resp, 500, ServiceResult.fail(msg));
+    }
+
+    // ===== POST (회원가입, 로그인, 로그아웃 공통 처리) =====
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        // POST /api/user/* 요청 처리 (회원가입, 로그인, 로그아웃).
+        setCors(resp);
+        // CORS 허용 헤더 설정.
+
+        resp.setContentType("application/json; charset=UTF-8");
+        // 응답 Content-Type 을 JSON + UTF-8 로 설정.
 
         try {
             String path = req.getPathInfo();
-            // /api/user/* 에서 /* 부분만 추출 (/register 또는 /login)
+            // /api/user/* 에서 * 부분만 가져옴.
+            // 예: /api/user/register → "/register"
+            // /api/user/login → "/login"
+            // /api/user/logout → "/logout"
 
             if (path == null) {
-                // 경로가 없는 경우 → 잘못된 요청
-                writeJson(resp, 404, false, "요청 경로를 확인하세요.");
+                // 경로 정보가 없는 경우 잘못된 요청으로 처리.
+                badRequest(resp, "요청 경로를 확인하세요.");
                 return;
             }
 
-            JsonObject json = readJson(req);
-            // 요청 body(JSON)를 파싱하여 JsonObject 로 변환.
+            // 1) 로그아웃은 body 없이 처리 (JSON 파싱 X)
+            if ("/logout".equals(path)) {
+                // 세션이 존재할 때만 가져오기 (새로 만들지 않음)
+                HttpSession session = req.getSession(false);
+                if (session != null) {
+                    session.invalidate(); // 세션 완전 종료
+                }
 
-            if (json == null) {
-                // JSON 형식이 아니거나 body 가 없는 경우
-                writeJson(resp, 400, false, "잘못된 요청 형식입니다.");
+                // 로그아웃 성공 응답
+                ok(resp, ServiceResult.ok("로그아웃 되었습니다."));
                 return;
             }
 
-            // 요청 경로에 따라 분기 처리
+            // 로그아웃이 아니라면 JSON body 파싱
+            ServiceResult jr = readJson(req);
+            if (!jr.success) {
+                badRequest(resp, jr.message);
+                return;
+            }
+            JsonObject json = (JsonObject) jr.data;
+
             switch (path) {
-
-                // ====== 회원가입 (/register) ======
                 case "/register": {
+                    // 회원가입 처리.
 
-                    // 필수 항목 존재 여부 확인
                     if (!json.has("id") || !json.has("password") || !json.has("email")) {
-                        writeJson(resp, 400, false, "필수 필드(id, password, email)가 없습니다.");
+                        // 필수 필드 유무 검사.
+                        badRequest(resp, "필수 필드(id, password, email)가 없습니다.");
                         return;
                     }
 
-                    // JSON 내부 값 꺼내기
                     String id = json.get("id").getAsString();
                     String password = json.get("password").getAsString();
                     String email = json.get("email").getAsString();
 
-                    // 실제 회원가입 처리 (서비스 레이어 호출)
                     ServiceResult r = userService.register(id, password, email);
 
-                    // 성공 시 201 Created, 실패 시 400 Bad Request
-                    resp.setStatus(r.success ? 201 : 400);
-
-                    // JSON 응답 전송
-                    resp.getWriter().write(gson.toJson(r));
+                    if (r.success) {
+                        // 성공 시 201 Created + ServiceResult 전체 전송
+                        HttpSession session = req.getSession(); // 여기서만 세션 생성/사용
+                        session.setAttribute("id", id);
+                        created(resp, r);
+                    } else {
+                        // 실패 시 400 Bad Request + message 사용.
+                        badRequest(resp, r.message);
+                    }
                     break;
                 }
 
-                // ====== 로그인 (/login) ======
                 case "/login": {
+                    // 로그인 처리.
 
-                    // 필수 항목 체크
                     if (!json.has("id") || !json.has("password")) {
-                        writeJson(resp, 400, false, "필수 필드(id, password)가 없습니다.");
+                        badRequest(resp, "필수 필드(id, password)가 없습니다.");
                         return;
                     }
 
-                    // JSON 값 추출
                     String id = json.get("id").getAsString();
                     String password = json.get("password").getAsString();
 
-                    // 로그인 처리
                     ServiceResult r = userService.login(id, password);
 
-                    // 성공이면 200 OK, 실패는 400
-                    // (원하면 401 Unauthorized 로 바꿀 수 있음)
-                    resp.setStatus(r.success ? 200 : 400);
-
-                    // JSON 응답
-                    resp.getWriter().write(gson.toJson(r));
+                    if (r.success) {
+                        // 로그인 성공: 200 OK + ServiceResult 그대로 응답.
+                        HttpSession session = req.getSession(); // 여기서 세션 생성/사용
+                        session.setAttribute("id", id);
+                        ok(resp, r);
+                    } else {
+                        // 로그인 실패: 401 Unauthorized 로 응답.
+                        unauthorized(resp, r.message);
+                    }
                     break;
                 }
 
-                // ====== 해당하지 않는 경로 ======
                 default:
-                    writeJson(resp, 404, false, "지원하지 않는 경로입니다.");
+                    // 정의되지 않은 경로로 요청 시.
+                    notFound(resp, "지원하지 않는 경로입니다.");
             }
 
         } catch (Exception e) {
-            // 서버 내부 오류 발생 시 처리
+            // 예외 발생 시 서버 오류 처리.
             e.printStackTrace();
-            writeJson(resp, 500, false, "서버 오류: " + e.getMessage());
+            serverError(resp, "서버 오류: " + e.getMessage());
         }
-    }
-
-    // JSON 형태의 공통 응답을 만들어주는 메서드
-    private void writeJson(HttpServletResponse resp, int status, boolean success, String msg) throws IOException {
-        resp.setStatus(status);
-        // HTTP 상태 코드 설정.
-
-        ServiceResult r = new ServiceResult();
-        // 공통 응답 객체 생성.
-
-        r.success = success;
-        r.message = msg;
-        // 결과 정보 채우기.
-
-        resp.getWriter().write(gson.toJson(r));
-        // JSON 으로 직렬화하여 전송.
     }
 }
 ```
@@ -224,87 +297,156 @@ public class UserAPI extends HttpServlet {
 ```java
 package localhost.myapp.api;
 
+import java.io.IOException;
+import java.util.List;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import localhost.myapp.board.Board;
 import localhost.myapp.board.BoardService;
 import localhost.myapp.dto.ServiceResult;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
-
-import java.io.IOException;
-import java.util.List;
-
+/**
+ * /api/board/*
+ *
+ * - GET /api/board : 게시글 목록 (page, size)
+ * - GET /api/board/{idx} : 게시글 상세
+ * - POST /api/board : 게시글 작성
+ * - PUT /api/board/{idx} : 게시글 수정 (본인 글만)
+ * - DELETE /api/board/{idx} : 게시글 삭제 (본인 글만)
+ *
+ * 모든 응답은 ServiceResult JSON 구조를 사용한다.
+ */
 @WebServlet("/api/board/*")
 public class BoardAPI extends HttpServlet {
 
+    /** 게시판 비즈니스 로직 */
     private final BoardService service = new BoardService();
+
+    /** JSON 변환기 */
     private final Gson gson = new Gson();
 
-    private JsonObject readJson(HttpServletRequest req) throws IOException {
-        return gson.fromJson(req.getReader(), JsonObject.class);
+    /**
+     * 요청 바디를 JSON으로 읽고, 성공/실패를 ServiceResult로 감싸서 반환
+     * - 성공 시: success=true, data에 JsonObject 저장
+     * - 실패 시: success=false, message에 오류 설명
+     */
+    private ServiceResult readJson(HttpServletRequest req) throws IOException {
+
+        // 1. Content-Type 검사
+        String contentType = req.getContentType();
+        if (contentType == null || !contentType.toLowerCase().startsWith("application/json")) {
+            return ServiceResult.fail("Content-Type 은 application/json 이어야 합니다.");
+            // 호출한 쪽에서 jr.success 보고 400으로 응답할 것
+        }
+
+        try {
+            JsonElement elem = JsonParser.parseReader(req.getReader());
+
+            // 2. body 비어 있음
+            if (elem == null || elem.isJsonNull()) {
+                return ServiceResult.fail("요청 body 가 비어 있습니다.");
+            }
+
+            // 3. JSON 객체가 아님 (배열/값 등)
+            if (!elem.isJsonObject()) {
+                return ServiceResult.fail("JSON 객체 형식의 body 가 필요합니다. (예: {\"id\":\"user\"})");
+            }
+
+            // 4. 성공 → data에 JsonObject 넣어서 반환
+            JsonObject obj = elem.getAsJsonObject();
+            return ServiceResult.ok(obj);
+
+        } catch (JsonParseException e) {
+            // 5. JSON 문법 에러
+            return ServiceResult.fail("잘못된 JSON 형식입니다.");
+        }
     }
 
+    /** CORS 헤더 설정 */
     private void setCors(HttpServletResponse resp) {
         resp.setHeader("Access-Control-Allow-Origin", "*");
         resp.setHeader("Access-Control-Allow-Headers", "Content-Type");
         resp.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
     }
 
+    /** OPTIONS 요청(CORS preflight) 처리 */
     @Override
     protected void doOptions(HttpServletRequest req, HttpServletResponse resp) {
         setCors(resp);
-        resp.setStatus(204);
+        resp.setStatus(204); // No Content
     }
 
-    // ===== 공통 응답 출력 =====
+    // ===== 응답 공통 처리 메서드들 =====
 
-    private void writeJson(HttpServletResponse resp, int status, ServiceResult<?> body)
+    /** 상태코드 + JSON 응답 출력 */
+    private void writeJson(HttpServletResponse resp, int status, ServiceResult body)
             throws IOException {
         resp.setStatus(status);
         resp.setContentType("application/json; charset=UTF-8");
         resp.getWriter().write(gson.toJson(body));
     }
 
+    /** 200 OK + data 응답 */
     private void ok(HttpServletResponse resp, Object data) throws IOException {
         writeJson(resp, 200, ServiceResult.ok(data));
     }
 
-    private void created(HttpServletResponse resp, ServiceResult<?> result) throws IOException {
+    /** 201 Created 응답 */
+    private void created(HttpServletResponse resp, ServiceResult result) throws IOException {
         writeJson(resp, 201, result);
     }
 
+    /** 400 Bad Request */
     private void badRequest(HttpServletResponse resp, String msg) throws IOException {
         writeJson(resp, 400, ServiceResult.fail(msg));
     }
 
+    /** 404 Not Found */
     private void notFound(HttpServletResponse resp, String msg) throws IOException {
         writeJson(resp, 404, ServiceResult.fail(msg));
     }
 
+    /** 500 Internal Server Error */
     private void serverError(HttpServletResponse resp, String msg) throws IOException {
         writeJson(resp, 500, ServiceResult.fail(msg));
     }
 
-    /** 목록 / 단건 조회 */
+    // ============================================================
+    // GET (목록/단건 조회)
+    // ============================================================
+
+    /**
+     * GET /api/board → 게시글 목록
+     * GET /api/board/{idx} → 게시글 상세
+     */
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         setCors(resp);
 
         try {
-            String path = req.getPathInfo();
+            String path = req.getPathInfo(); // "/3" or null
 
+            // ===== 목록 조회 =====
             if (path == null || "/".equals(path)) {
                 int page = parseInt(req.getParameter("page"), 1);
                 int size = parseInt(req.getParameter("size"), 10);
 
                 List<Board> list = service.list(page, size);
-                ok(resp, list); // ServiceResult<List<Board>> 로 감싸서 응답
+                ok(resp, list); // List<Board>를 data로 감싸서 응답
                 return;
             }
 
+            // ===== 단일 조회 =====
             int idx = Integer.parseInt(path.substring(1));
             Board b = service.get(idx);
 
@@ -321,29 +463,45 @@ public class BoardAPI extends HttpServlet {
         }
     }
 
-    /** 게시글 생성 */
+    // ============================================================
+    // POST (게시글 생성)
+    // ============================================================
+
+    /**
+     * POST /api/board
+     * Body: { title, content }
+     */
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         setCors(resp);
 
         try {
-            JsonObject json = readJson(req);
+            ServiceResult jr = readJson(req);
+            if (!jr.success) {
+                badRequest(resp, jr.message);
+                return;
+            }
 
+            JsonObject json = (JsonObject) jr.data;
+
+            // 필수값 검증
             if (json == null || !json.has("title") || !json.has("content")) {
                 badRequest(resp, "필수 필드(title, content)가 없습니다.");
                 return;
             }
 
+            HttpSession session = req.getSession(); // 로그인 세션
+            String fk_user_id = (String) session.getAttribute("id"); // 작성자 ID
+
             String title = json.get("title").getAsString();
             String content = json.get("content").getAsString();
 
-            ServiceResult<Integer> r = service.create(title, content);
+            // 게시글 생성 (ServiceResult.idx 에 새 idx 들어감)
+            ServiceResult r = service.create(title, content, fk_user_id);
 
             if (r.success) {
-                // r.data = 새로 생성된 idx
-                created(resp, r);
+                created(resp, r); // status 201 + body: ServiceResult( message + idx )
             } else {
-                // 실패 시 400 + 실패 메시지
                 badRequest(resp, r.message);
             }
 
@@ -353,7 +511,15 @@ public class BoardAPI extends HttpServlet {
         }
     }
 
-    /** 게시글 수정 */
+    // ============================================================
+    // PUT (게시글 수정)
+    // ============================================================
+
+    /**
+     * PUT /api/board/{idx}
+     * Body: { title, content }
+     * - 본인 게시글만 수정 가능
+     */
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         setCors(resp);
@@ -367,20 +533,29 @@ public class BoardAPI extends HttpServlet {
             }
 
             int idx = Integer.parseInt(path.substring(1));
-            JsonObject json = readJson(req);
+            ServiceResult jr = readJson(req);
+            if (!jr.success) {
+                badRequest(resp, jr.message);
+                return;
+            }
+            JsonObject json = (JsonObject) jr.data;
 
             if (json == null || !json.has("title") || !json.has("content")) {
                 badRequest(resp, "필수 필드(title, content)가 없습니다.");
                 return;
             }
 
+            HttpSession session = req.getSession();
+            String fk_user_id = (String) session.getAttribute("id");
+
             String title = json.get("title").getAsString();
             String content = json.get("content").getAsString();
 
-            ServiceResult<Void> r = service.update(idx, title, content);
+            // 수정 로직 (본인 여부는 service.update 내부에서 검사)
+            ServiceResult r = service.update(idx, title, content, fk_user_id);
 
             if (r.success) {
-                writeJson(resp, 200, r); // message: "수정되었습니다", data: null
+                writeJson(resp, 200, r); // 메시지: "수정되었습니다", data: null
             } else {
                 badRequest(resp, r.message);
             }
@@ -391,7 +566,14 @@ public class BoardAPI extends HttpServlet {
         }
     }
 
-    /** 게시글 삭제 */
+    // ============================================================
+    // DELETE (게시글 삭제)
+    // ============================================================
+
+    /**
+     * DELETE /api/board/{idx}
+     * - 본인 게시글만 삭제 가능
+     */
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         setCors(resp);
@@ -404,9 +586,13 @@ public class BoardAPI extends HttpServlet {
                 return;
             }
 
+            HttpSession session = req.getSession();
+            String fk_user_id = (String) session.getAttribute("id");
+
             int idx = Integer.parseInt(path.substring(1));
 
-            ServiceResult<Void> r = service.delete(idx);
+            // 삭제 로직 (본인 여부는 service.delete 내부에서 검사)
+            ServiceResult r = service.delete(idx, fk_user_id);
 
             if (r.success) {
                 writeJson(resp, 200, r);
@@ -420,6 +606,7 @@ public class BoardAPI extends HttpServlet {
         }
     }
 
+    /** 문자열 숫자 파싱 유틸 (파싱 실패 시 기본값 반환) */
     private int parseInt(String s, int def) {
         try {
             return Integer.parseInt(s);
@@ -537,9 +724,9 @@ curl -X DELETE http://java.localhost/api/board/1
     Content-Type: application/json
 
     {
-    "id": "kim4",
-    "password": "1234",
-    "email": "a@b.com"
+        "id": "idtest",
+        "password": "1234",
+        "email": "a@b.com"
     }
 
     ### 로그인
@@ -548,9 +735,14 @@ curl -X DELETE http://java.localhost/api/board/1
     Content-Type: application/json
 
     {
-    "id": "kim4",
-    "password": "1234"
+        "id": "idtest",
+        "password": "1234"
     }
+
+    ### 로그아웃
+    POST {{host}}/api/user/logout
+    Host: {{hostname}}
+    Content-Type: application/json
 
     ### 게시판 목록 조회
     GET {{host}}/api/board?page=1&size=10
@@ -566,8 +758,8 @@ curl -X DELETE http://java.localhost/api/board/1
     Content-Type: application/json
 
     {
-    "title": "첫 번째 글",
-    "content": "게시판 내용입니다."
+        "title": "첫 번째 글",
+        "content": "게시판 내용입니다."
     }
 
     ### 게시판 글 수정
@@ -576,8 +768,8 @@ curl -X DELETE http://java.localhost/api/board/1
     Content-Type: application/json
 
     {
-    "title": "수정된 제목",
-    "content": "수정된 내용입니다."
+        "title": "수정된 제목",
+        "content": "수정된 내용입니다."
     }
 
     ### 게시판 글 삭제

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vue + 서블릿 로그인/회원가입</title>
+
+    <!-- 외부 CSS -->
+    <link rel="stylesheet" href="/assets/css/vue.css" />
+  </head>
+
+  <body>
+    <header>
+      <h1>로그인 / 회원가입</h1>
+      <div class="sub">ServiceResult 기반 API + Vue 3 Composition API 예제</div>
+    </header>
+
+    <!-- Vue가 마운트되는 영역 -->
+    <div class="container" id="auth-app">
+      <section class="section">
+        <h2>로그인</h2>
+
+        <label for="login-id">ID</label>
+        <input
+          id="login-id"
+          type="text"
+          placeholder="예: student01"
+          v-model="loginId"
+        />
+
+        <label for="login-pw">비밀번호</label>
+        <input
+          id="login-pw"
+          type="password"
+          placeholder="비밀번호 입력"
+          v-model="loginPw"
+        />
+
+        <div style="margin-top: 10px">
+          <button @click="login" :disabled="loginLoading">
+            {{ loginLoading ? "로그인 중..." : "로그인" }}
+          </button>
+        </div>
+
+        <p v-if="loginError" style="color: red; margin-top: 6px">
+          {{ loginError }}
+        </p>
+        <p v-else-if="loginMessage" style="color: green; margin-top: 6px">
+          {{ loginMessage }}
+        </p>
+
+        <p class="muted" style="margin-top: 8px">
+          현재 로그인: <strong>{{ loggedInUser || "없음" }}</strong>
+        </p>
+
+        <hr style="margin: 20px 0" />
+
+        <h2>회원가입</h2>
+
+        <label for="reg-id">ID</label>
+        <input id="reg-id" type="text" v-model="registerId" />
+
+        <label for="reg-pw">비밀번호</label>
+        <input id="reg-pw" type="password" v-model="registerPw" />
+
+        <label for="reg-email">이메일</label>
+        <input id="reg-email" type="email" v-model="registerEmail" />
+
+        <div style="margin-top: 10px">
+          <button @click="register" :disabled="registerLoading">
+            {{ registerLoading ? "가입 중..." : "회원가입" }}
+          </button>
+        </div>
+
+        <p v-if="registerError" style="color: red; margin-top: 6px">
+          {{ registerError }}
+        </p>
+        <p v-else-if="registerMessage" style="color: green; margin-top: 6px">
+          {{ registerMessage }}
+        </p>
+      </section>
+    </div>
+
+    <!-- Vue / API / Service / App -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/service.js"></script>
+    <script src="/assets/js/auth-app.js"></script>
+  </body>
+</html>

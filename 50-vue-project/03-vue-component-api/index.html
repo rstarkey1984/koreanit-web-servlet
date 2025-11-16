@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>게시판 SPA UI 목업 (순수 HTML)</title>
+    <link rel="stylesheet" href="/assets/css/vue.css" />
+  </head>
+  <body>
+    <header>
+      <h1>게시판 SPA UI 목업</h1>
+      <div class="sub">
+        Vue / API 붙이기 전에, 화면 구조부터 잡는 순수 HTML 버전
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- 1. 로그인 / 회원가입 -->
+      <section class="section">
+        <h2>로그인 / 회원가입</h2>
+        <div class="section-desc">
+          실제 구현에서는 이 영역이 <strong>Auth 컴포넌트</strong>가 되고,
+          <code>/api/user/register</code>, <code>/api/user/login</code>,
+          <code>/api/user/logout</code> 과 연결된다.
+        </div>
+
+        <div class="row">
+          <!-- 로그인 -->
+          <div class="col">
+            <h3 style="margin-top: 0">로그인</h3>
+
+            <label for="login-id">ID</label>
+            <input
+              id="login-id"
+              type="text"
+              placeholder="예: student01"
+              value=""
+            />
+
+            <label for="login-pw">비밀번호</label>
+            <input
+              id="login-pw"
+              type="password"
+              placeholder="••••••••"
+              value=""
+            />
+
+            <div style="margin-top: 10px">
+              <button>로그인</button>
+            </div>
+
+            <p class="muted" style="margin-top: 6px">
+              ※ 나중에 성공 시 상단에 “로그인됨” 상태로 바뀌고, 버튼도 변경된다.
+            </p>
+          </div>
+
+          <!-- 회원가입 -->
+          <div class="col">
+            <h3 style="margin-top: 0">회원가입</h3>
+
+            <label for="reg-id">ID</label>
+            <input
+              id="reg-id"
+              type="text"
+              placeholder="예: student01"
+              value=""
+            />
+
+            <label for="reg-pw">비밀번호</label>
+            <input
+              id="reg-pw"
+              type="password"
+              placeholder="8자 이상 권장"
+              value=""
+            />
+
+            <label for="reg-email">이메일</label>
+            <input
+              id="reg-email"
+              type="email"
+              placeholder="example@domain.com"
+              value=""
+            />
+
+            <div style="margin-top: 10px">
+              <button>회원가입</button>
+            </div>
+
+            <p class="muted" style="margin-top: 6px">
+              ※ 성공 시 “회원가입 완료! 로그인 해 주세요.” 같은 메시지를 표시할
+              예정.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 상단 상태 + 전역 버튼 -->
+      <section class="section">
+        <div class="toolbar">
+          <div>
+            <strong>현재 로그인 상태:</strong>
+            <span>student01</span>
+            <span class="badge">로그인됨</span>
+            <!-- 로그아웃 상태 예시:
+            <span class="muted">로그인하지 않음</span>
+            -->
+          </div>
+          <div class="toolbar-right">
+            <button>로그아웃</button>
+            <button class="secondary">목록 보기</button>
+            <button>새 글 작성</button>
+          </div>
+        </div>
+        <p class="muted">
+          ※ 실제 구현에서는 로그인 여부에 따라 텍스트/버튼 상태가 바뀌고, “새 글
+          작성” 클릭 시 아래 폼 화면으로 전환된다.
+        </p>
+      </section>
+
+      <!-- 3. 게시글 목록 화면 (목록 뷰) -->
+      <section class="section">
+        <h2>게시글 목록 화면 (list)</h2>
+        <div class="section-desc">
+          <code>GET /api/board?page=&amp;size=</code> 응답 데이터를 렌더링할
+          영역. 지금은 더미 데이터만 표시한다.
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 60px">번호</th>
+              <th>제목</th>
+              <th style="width: 140px">작성자</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>3</td>
+              <td>Vue + 서블릿 게시판 실습 공지</td>
+              <td>teacher</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>API 엔드포인트 정리</td>
+              <td>teacher</td>
+            </tr>
+            <tr>
+              <td>1</td>
+              <td>첫 번째 글입니다.</td>
+              <td>student01</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pagination">
+          <div>총 3건 중 1페이지</div>
+          <div class="pagination-controls">
+            <button class="secondary">&laquo; 이전</button>
+            <button class="secondary">다음 &raquo;</button>
+          </div>
+        </div>
+
+        <p class="muted" style="margin-top: 6px">
+          ※ 나중에 Vue로 구현할 때는 <strong>v-for</strong>로 반복 렌더링하고,
+          페이지 이동 시마다 API를 다시 호출할 것이다.
+        </p>
+      </section>
+
+      <!-- 4. 게시글 상세 화면 (상세 뷰) -->
+      <section class="section">
+        <h2>게시글 상세 화면 (detail)</h2>
+        <div class="section-desc">
+          <code>GET /api/board/{id}</code> 응답을 표시할 영역. 아래는 예시
+          데이터.
+        </div>
+
+        <div>
+          <p><strong>글 번호:</strong> 3</p>
+          <p><strong>제목:</strong> Vue + 서블릿 게시판 실습 공지</p>
+          <p><strong>작성자:</strong> teacher</p>
+          <p><strong>내용:</strong></p>
+          <pre>
+이번 시간에는 Vue 3의 Composition API를 활용해서
+서블릿 기반 게시판 API와 연동하는 SPA를 만들어 봅니다.
+
+1. 더미 데이터로 UI 먼저 구성
+2. fetch()로 API 실제 연결
+3. 컴포넌트 간 상태/이벤트 흐름 이해
+          </pre>
+        </div>
+
+        <div style="margin-top: 10px">
+          <button>수정</button>
+          <button class="secondary">목록으로</button>
+          <button
+            style="margin-left: 6px; background: #b91c1c; border-color: #7f1d1d"
+          >
+            삭제
+          </button>
+        </div>
+
+        <p class="muted" style="margin-top: 6px">
+          ※ 실제 구현 시에는 선택한 게시글 ID를 기준으로 데이터를 가져오고,
+          “수정” 클릭 시 아래 폼 화면으로 전환한다.
+        </p>
+      </section>
+
+      <!-- 5. 게시글 작성/수정 화면 (폼 뷰) -->
+      <section class="section">
+        <h2>게시글 작성 / 수정 화면 (form)</h2>
+        <div class="section-desc">
+          <code>POST /api/board</code> (작성),
+          <code>PUT /api/board/{id}</code> (수정) 에 사용할 폼. UI 구조만 구현해
+          놓은 상태.
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label for="form-title">제목</label>
+            <input
+              id="form-title"
+              type="text"
+              placeholder="제목을 입력하세요."
+              value=""
+            />
+          </div>
+          <div class="col">
+            <label for="form-writer">작성자 (로그인한 사용자)</label>
+            <input id="form-writer" type="text" value="student01" disabled />
+          </div>
+        </div>
+
+        <label for="form-content" style="margin-top: 12px">내용</label>
+        <textarea id="form-content" placeholder="내용을 입력하세요."></textarea>
+
+        <div style="margin-top: 10px">
+          <button>저장</button>
+          <button class="secondary">취소</button>
+        </div>
+
+        <p class="muted" style="margin-top: 6px">
+          ※ “수정 모드”일 때는 기존 제목/내용으로 채워넣고, 저장 시
+          <strong>create vs update</strong>를 분기하는 로직을 나중에 추가할
+          것이다.
+        </p>
+      </section>
+
+      <!-- 6. SPA 화면 상태 설명 -->
+      <section class="section">
+        <h2>SPA 화면 상태 흐름 요약</h2>
+        <div class="section-desc">
+          실제 Vue SPA에서는 <code>currentView</code> 같은 상태로 화면을
+          전환하게 된다.
+        </div>
+
+        <ul style="font-size: 0.9rem; margin-top: 4px">
+          <li><strong>list</strong> → 게시글 목록 화면</li>
+          <li><strong>detail</strong> → 게시글 상세 화면</li>
+          <li><strong>form</strong> → 게시글 작성/수정 화면</li>
+        </ul>
+
+        <p class="muted">
+          지금은 세 화면을 모두 한 번에 보여주는 “디자인 목업” 상태이고,<br />
+          나중에 Vue 3 + Composition API로 화면을 쪼개서 컴포넌트로 만들고
+          <code>v-if</code> 등으로 토글할 예정이다.
+        </p>
+      </section>
+    </div>
+
+    <footer>
+      이 파일은 수업용 순수 HTML 목업입니다. 이후 단계에서 Vue / API를 한 단계씩
+      붙일 예정입니다.
+    </footer>
+  </body>
+</html>
