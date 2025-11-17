@@ -163,7 +163,7 @@ CDN 방식으로 바로 화면에 Vue 띄우기
         → 자동으로 화면 업데이트
 
 
-2. 왜 `ref()` / `reactive()` 는 무엇인가?
+2. `ref()` / `reactive()` 는 무엇인가?
 
     > Vue의 “반응형 상태(reactive state)”를 만드는 함수들
 
