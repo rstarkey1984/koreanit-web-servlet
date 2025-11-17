@@ -174,6 +174,13 @@ Ubuntu PATH(환경변수)의 역할을 알아보고 alias(별칭) 등록을 해�
     ```
     > `source` 명령어는 파일 안에 있는 명령어들을 현재 쉘에서 실행하는 명령어
 
+5. 톰캣 로그 폴더 접근 권한 주기 ( 현재 로그인한 사용자에게 adm 그룹 추가 )
+    ```bash
+    sudo usermod -aG adm $USER
+
+    newgrp adm
+    ```
+
 ## 3. Ubuntu에서 시간대를 Asia/Seoul (한국 시간) 로 변경
 
 1. 현재 시간대 확인

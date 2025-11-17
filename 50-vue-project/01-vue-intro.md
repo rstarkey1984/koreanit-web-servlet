@@ -12,6 +12,7 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 
 - Vue는 “HTML + JS 연결을 편하게 해주는 프레임워크” 
 
+
 ## 1. Vue 소개
 > Vue(발음: /vjuː/, view와 비슷함)는 사용자 인터페이스를 구축하기 위한 자바스크립트 프레임워크입니다. 표준 HTML, CSS, JavaScript 위에 구축되며, 선언적이고 컴포넌트 기반의 프로그래밍 모델을 제공하여 복잡도에 상관없이 효율적으로 사용자 인터페이스를 개발할 수 있도록 도와줍니다.
 
@@ -55,7 +56,7 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 
     3. 코드가 점점 복잡해지고 유지보수 어려움
 
-2. Vue 버전 (CDN 방식)
+2. Vue 3 버전 (CDN 방식)
     > "데이터만 바꾸면 화면이 자동 업데이트" 됨.
 
     `/vue-01/2.html`
@@ -97,42 +98,76 @@ CDN 방식으로 바로 화면에 Vue 띄우기
 
     3. 코드가 훨씬 짧고 직관적임
 
-## 3. createApp() 기본 구조
-> `createApp()`은 `HTML`과 `Vue` 코드를 연결해주는 Vue 프로그램의 시작점 이다.
+## 3. Composition API 구조
+> Vue 3에서 공식으로 도입된 새로운 방식의 컴포넌트 작성법.
 
-- `createApp` 구조 시각화 (중요)
+- Composition API 구조 ( 중요 )
+  > Composition API는 한 기능을 구성하는 모든 코드가 `setup()` 내부에 모여 있습니다.
     ```js
-    createApp({ // 1. Vue 앱 만들기
-        setup() { // 2. 상태/함수 정의
+    <div id="app">...</div>
 
-            const count = ref(0); // 상태 정의
+    <script>
+      const { createApp, ref } = Vue;
+      // const createApp = Vue.createApp;
+      // const ref = Vue.ref;
+      // 한줄로 줄여서 --> const { createApp, ref } = Vue;
 
-            // 3. mount 하는 곳에 전달 (return) 
-            return { count }              
+      createApp({ // ① Vue 애플리케이션 생성
 
+        setup() {
+          // ② 반응형 상태 / 함수 정의
+          const count = ref(0);
+          const inc = () => count.value++;
+
+          // ③ 템플릿에서 사용할 데이터/함수 반환
+          return { count, inc };
         }
-    }).mount('#app') 
-    // 4. mount('#app') 으로 HTML에서 id="app"인 요소와 연결. 
-    // 즉 <div id="app">...</div> 안은 Vue 가 관리하는 영역이 됩니다. 
-    // return 으로 넘겨준 값들을 Vue 가 관리하는 영역에서 사용가능. 예) {{ count }}
+
+      }).mount("#app");        // ④ #app 요소에 앱 장착 (mount)
+    </script>
     ```
 
     ① Vue 앱 만들기
+    > createApp()은 새로운 Vue 애플리케이션(루트 컴포넌트)을 생성한다.
+    
     ② 상태/함수 정의
-    ③ 템플릿에 전달 (return)
-    ④ mount()로 HTML과 연결
+        
+    - 반응형 상태 (State)
 
-    - 템플릿이란?
+      > ref() → 숫자, 문자열 같은 기본형 데이터를 반응형으로 만든다.
 
-        > 템플릿 = HTML 코드(중에서 Vue가 관리하는 부분)
-        ```html
-        <div id="app">
-            ...
-            <p>{{ count }}</p>
-            ...
-        </div>
-        ```
+      ```
+      const count = ref(0);
+      ```
+      
+    - 함수 (Methods 역할)
 
+      > 이 함수는 Vue 템플릿에서 이벤트(@click 등)로 호출될 수 있다.
+      ```
+      const inc = () => count.value++;
+      ```
+
+    ③ 템플릿에 전달. ( mount 된 곳으로 )
+    > setup()에서 return한 값만 템플릿에서 사용할 수 있다.
+
+    ④ mount("#app") → 이 요소의 내부가 Vue가 관리하는 템플릿이 됨
+    > mount("#app")은 HTML에서 id="app"인 요소를 Vue의 루트 컨테이너로 지정한다.
+
+    > `<div id="app">...</div>` 이 요소 안의 HTML 내용을 Vue가 “템플릿으로 해석”하여 다시 렌더링한다.
+
+    
+
+- 템플릿이란?
+  > Vue가 관리하는 HTML 부분(= 렌더링에 사용하는 HTML 구조)
+  ```html
+  <div id="app">
+    <!-- 템플릿 시작 -->
+    <h1>카운터</h1>
+    <p>{{ count }}</p> <!-- 템플릿 표현식(Template Expression) -->
+    <button @click="inc">증가</button> <!-- 템플릿 디렉티브(Directive) -->
+    <!-- 탬플릿 끝 -->
+  </div>
+  ```
         
     
 
@@ -197,10 +232,11 @@ CDN 방식으로 바로 화면에 Vue 띄우기
             <button @click="count++">+1</button>
             ```
         
-        - Vue 템플릿에서 화면에 표시할때는,
+        - Vue 템플릿에서 화면에 표시할때는, 
             ```html
             <p>{{ count }}</p>
             ```
+            > {{ 변수 }} 는 템플릿 표현식
         
 
     ### 2. `reactive()` 는 무엇인가?
@@ -233,13 +269,102 @@ CDN 방식으로 바로 화면에 Vue 띄우기
             ```
 
     ## 요약하면
-    > Vue 공식 문서에서는 둘을 “`Reactivity API`”라고 부른다.
+    1. `ref()` = `반응형 변수`를 만드는 함수
 
-    1. `ref()` = 단일 값 `반응형 변수`를 만드는 함수
+    2. `reactive()` = `반응형 객체`를 만드는 함수 
 
-    2. `reactive()` = 객체/배열 `반응형 객체`를 만드는 함수 
+## 5. Vue 기본 제공 디렉티브 (Vue 3) 실습
 
-## 5. Vue 반응성(ref, reactive) 완전 이해
+⚙️ VSCode 설정 - `ctrl` + `,` 설정에서 `Tab` 검색 후 `Tab size` 2로 변경
+
+- 실습 페이지 ( `/vue-01/ex.html` )
+
+    ```html
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Vue 디렉티브 실습</title>
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    </head>
+    <body style="text-align: center">
+        <h1>디렉티브 실습</h1>
+        <div id="app">
+        <!-- 여기에서 디렉티브 실습 -->
+
+        <!-- 여기에서 디렉티브 실습 -->
+        </div>
+        <script>
+        const { createApp, ref } = Vue;
+
+        const vm = createApp({
+            setup() {
+            return {};
+            },
+        }).mount("#app");
+        </script>
+    </body>
+    </html>
+    ```
+
+1. 렌더링 관련 디렉티브 - 조건부 렌더링
+
+    - `v-if` / `v-else-if` / `v-else` ( ref )
+        > 조건부 렌더링
+        ```html
+        <p v-if="isLogin">로그인됨</p>
+        <p v-else>로그인 안됨</p>
+        ```
+
+        ```js
+        const isLogin = ref(false);
+        ```
+
+    - `v-show` ( ref )
+        > 보이기/숨기기 (display 조작)
+        ```html
+        <p v-show="isVisible">보임</p>
+        ```
+
+        ```js
+        const isVisible = ref(false);
+        ```
+
+    - `v-for` ( ref )
+        리스트 반복 렌더링
+        ```html
+        <li v-for="item in items">{{ item }}</li>
+        ```
+        ```js
+        const items = ref([1, 2, 3, 4, 5, 6, 7]);
+        ```
+
+2. 바인딩 관련 디렉티브
+    - `v-bind` → : 로 축약 ( ref )
+      > HTML 속성에 바인딩
+
+      ```html
+      <img :src="url" />
+      ```
+
+    - `v-model` ( ref )
+      > 양방향 데이터 바인딩
+      ```html
+      <input v-model="username" />
+      ```
+
+    - `v-on` → @ 로 축약 ( methods )
+      > 이벤트 바인딩
+      ```html
+      <button @click="login">로그인</button>
+      ```
+      ```js
+      const login = () => {
+        alert("로그인 실행");
+      };
+      ```
+
+## 6. Vue 반응성(ref, reactive) 완전 이해
 
 `/vue-01/3.html`
 ```html
