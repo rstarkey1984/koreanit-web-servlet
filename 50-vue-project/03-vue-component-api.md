@@ -14,919 +14,1074 @@ Vue의 핵심 철학은 “화면을 작은 컴포넌트로 나누고, 데이터
 
 ```
 /proejct/
-    ├── index.html
-    ├── /assets/css/vue.css
-    ├── /assets/js/auth.js
-    ├── /assets/js/board.js
-    ├── /assets/js/app.js
+    ├── /vue-03/index.html
+    ├── /vue-03/style.css
+    ├── /vue-03/app.js
+    ├── /vue-03/api.js
 ```
 
+## 1. `api.js`
+```js
+async function get_board(idx, page, size) {
+  try {
+    const path = idx == null ? "" : "/" + idx;
 
+    page = page == null ? "" : page;
+    size = size == null ? "" : size;
 
+    let param = "";
 
+    if (path === "") {
+      if (page !== "") param += "&page=" + encodeURIComponent(page);
+      if (size !== "") param += "&size=" + encodeURIComponent(size);
+      if (param !== "") param = "?" + param.substring(1);
+    }
 
-## 1. index.html
+    const res = await fetch("/api/board" + path + param);
+    const data = await res.json();
+    return data; // { success, message, data: { items, page, size, totalCount, totalPages } }
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+}
+
+async function post_board(title, content) {
+  try {
+    const res = await fetch("/api/board", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: title,
+        content: content,
+      }),
+    });
+
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function put_board(idx, title, content) {
+  try {
+    idx = idx == null ? "" : "/" + idx;
+    const res = await fetch("/api/board" + idx, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: title,
+        content: content,
+      }),
+    });
+
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function delete_board(idx) {
+  try {
+    idx = idx == null ? "" : "/" + idx;
+    const res = await fetch("/api/board" + idx, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function user_login(id, password) {
+  try {
+    const res = await fetch("/api/user/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: id,
+        password: password,
+      }),
+    });
+
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function user_register(id, password, email) {
+  try {
+    const res = await fetch("/api/user/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: id,
+        password: password,
+        email: email,
+      }),
+    });
+
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function user_logout() {
+  try {
+    const res = await fetch("/api/user/logout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    throw err;
+  }
+}
+```
+
+## 2. index.html
 
 ```html
 <!DOCTYPE html>
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>Vue 게시판 SPA (CDN, Composition API)</title>
-    <!-- Vue 3 CDN: 전역 변수 Vue 제공 -->
+    <title>로그인 + 게시판 + 페이징</title>
+
+    <!-- 게시판 전용 CSS -->
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- 공통 CSS (네가 만든 vue.css 사용) -->
-    <link rel="stylesheet" href="/complete/vue.css" />
+
+    <!-- API 호출 함수들 (서버 통신) -->
+    <script src="api.js"></script>
   </head>
+
   <body>
     <div id="app">
-      <h1>Vue + 서블릿 게시판 SPA (Composition API)</h1>
-
-      <!-- 로그인 / 로그아웃 / 회원가입 -->
-      <div class="card">
-        <h2>로그인 / 회원가입</h2>
-
-        <!-- 🔥 여기 추가: 로그인/회원가입 오류/성공 알림 -->
-        <div v-if="loginError" class="alert alert-error">{{ loginError }}</div>
-        <div v-if="registerError" class="alert alert-error">
-          {{ registerError }}
-        </div>
-        <div v-if="registerSuccess" class="alert alert-success">
-          {{ registerSuccess }}
-        </div>
-        <!-- --------------------------------------- -->
-
-        <!-- 이미 로그인한 경우 -->
-        <div v-if="loginUserId" class="row">
-          <div>안녕하세요, <strong>{{ loginUserId }}</strong> 님 👋</div>
-          <button class="secondary" @click="logout">로그아웃</button>
-        </div>
-
-        <!-- 로그인 안 된 경우: 로그인/회원가입 탭 -->
-        <div v-else>
-          <!-- 모드 전환 버튼 -->
-          <div class="row" style="margin-bottom: 12px; gap: 6px">
-            <button
-              type="button"
-              :class="['secondary', { primary: authMode === 'login' }]"
-              @click="authMode = 'login'"
-            >
-              로그인
-            </button>
-            <button
-              type="button"
-              :class="['secondary', { primary: authMode === 'register' }]"
-              @click="authMode = 'register'"
-            >
-              회원가입
-            </button>
+      <div class="container">
+        <!-- 로그인 / 회원가입 -->
+        <section>
+          <div class="flex-between">
+            <h1>로그인</h1>
+            <span v-if="isLogin">😊 {{ login_user_id }} 님 환영합니다.</span>
           </div>
 
-          <!-- 로그인 폼 -->
-          <form v-if="authMode === 'login'" @submit.prevent="login">
-            <div class="row" style="margin-bottom: 8px">
-              <div>
-                <label>
-                  아이디
-                  <input v-model="loginForm.id" placeholder="아이디" />
-                </label>
-              </div>
-              <div>
-                <label>
-                  비밀번호
-                  <input
-                    v-model="loginForm.password"
-                    type="password"
-                    placeholder="비밀번호"
-                  />
-                </label>
-              </div>
-              <div>
-                <button class="primary" type="submit" :disabled="loading">
-                  로그인
-                </button>
-              </div>
-            </div>
-            <div class="muted">
-              ※ 예제용으로 API에 로그인만 요청하고, 클라이언트에서
-              localStorage로 로그인 상태를 기억합니다.
+          <p v-if="login_error_msg" class="alert-error">
+            {{ login_error_msg }}
+          </p>
+
+          <!-- 로그인 O -->
+          <form v-if="isLogin" @submit.prevent="logout" class="card">
+            <div class="flex-between">
+              <span>현재 로그인: <strong>{{ login_user_id }}</strong></span>
+              <button type="submit" class="secondary">로그아웃</button>
             </div>
           </form>
 
-          <!-- 회원가입 폼 -->
-          <form v-else @submit.prevent="register">
-            <div style="margin-bottom: 8px">
-              <label>
-                아이디 (최대 20자)
-                <input
-                  v-model="registerForm.id"
-                  placeholder="아이디"
-                  maxlength="20"
-                />
-              </label>
-            </div>
-            <div style="margin-bottom: 8px">
-              <label>
-                비밀번호
-                <input
-                  v-model="registerForm.password"
-                  type="password"
-                  placeholder="비밀번호"
-                />
-              </label>
-            </div>
-            <div style="margin-bottom: 8px">
-              <label>
-                이메일 (최대 45자)
-                <input
-                  v-model="registerForm.email"
-                  type="email"
-                  placeholder="이메일"
-                  maxlength="45"
-                />
-              </label>
-            </div>
+          <!-- 로그인 X -->
+          <div v-else>
+            <!-- 로그인 폼 -->
+            <form @submit.prevent="login" class="card">
+              <h2 style="margin-top: 0; margin-bottom: 12px">로그인</h2>
 
-            <button class="primary" type="submit" :disabled="loading">
-              회원가입
-            </button>
-          </form>
-        </div>
-      </div>
+              <label>아이디</label>
+              <input type="text" v-model="input_user_id" />
 
-      <!-- 게시판 목록 / 페이징 -->
-      <div class="card">
-        <div class="row" style="justify-content: space-between">
-          <h2>게시판 목록</h2>
-          <div class="row">
-            <span class="muted">페이지당</span>
-            <!-- v-model.number : 문자열이 아닌 숫자로 바인딩 -->
-            <select v-model.number="size" @change="changeSize">
-              <option :value="5">5개</option>
-              <option :value="10">10개</option>
-              <option :value="20">20개</option>
-            </select>
-          </div>
-        </div>
+              <label class="mt-8">비밀번호</label>
+              <input type="password" v-model="input_user_password" />
 
-        <!-- 🔥 여기 추가: 목록 관련 에러 -->
-        <div v-if="boardError" class="alert alert-error">{{ boardError }}</div>
-        <!-- ---------------------------------- -->
+              <div class="text-right mt-8">
+                <button class="primary">로그인</button>
+              </div>
+            </form>
 
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 60px">번호</th>
-              <th style="width: 120px">작성자</th>
-              <th>제목</th>
-              <th style="width: 160px" class="right">액션</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="boards.length === 0">
-              <td colspan="3" class="muted">게시글이 없습니다.</td>
-            </tr>
+            <!-- 회원가입 결과/에러 -->
+            <p v-if="register_error_msg" class="alert-error">
+              {{ register_error_msg }}
+            </p>
+            <p v-if="register_success_msg" class="alert-success">
+              {{ register_success_msg }}
+            </p>
 
-            <tr v-for="b in boards" :key="b.idx">
-              <td>{{ b.idx }}</td>
-              <!-- 🔥 작성자 표시 -->
-              <td>{{ b.fk_user_id || '(익명)' }}</td>
-              <td>
-                <div>{{ b.title || '(제목 없음)' }}</div>
+            <!-- 회원가입 폼 -->
+            <form @submit.prevent="register" class="card">
+              <h2 style="margin-top: 0; margin-bottom: 12px">회원가입</h2>
 
-                <!-- 내용 미리보기 (최대 5줄) -->
-                <div
-                  class="muted small content-preview"
-                  :class="{ expanded: expandedBoardId === b.idx }"
-                >
-                  {{ b.content || '(내용 없음)' }}
-                </div>
-
-                <!-- 더보기 / 접기 버튼 -->
-                <button
-                  v-if="b.content && b.content.length > 120"
-                  type="button"
-                  class="link-button"
-                  @click="toggleContent(b.idx)"
-                >
-                  {{ expandedBoardId === b.idx ? '접기' : '더보기' }}
-                </button>
-              </td>
-              <td class="right">
-                <button
-                  class="secondary"
-                  @click="startEdit(b)"
-                  :disabled="loading"
-                >
-                  수정
-                </button>
-                <button
-                  class="danger"
-                  style="margin-left: 4px"
-                  @click="deleteBoard(b.idx)"
-                  :disabled="loading"
-                >
-                  삭제
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- 페이징 버튼 -->
-        <div
-          class="row"
-          style="justify-content: space-between; margin-top: 10px"
-        >
-          <div>
-            <button
-              class="secondary"
-              @click="prevPage"
-              :disabled="page <= 1 || loading"
-            >
-              ◀ 이전
-            </button>
-            <button
-              class="secondary"
-              style="margin-left: 4px"
-              @click="nextPage"
-              :disabled="!hasNext || loading"
-            >
-              다음 ▶
-            </button>
-          </div>
-          <div class="muted">현재 페이지: {{ page }}</div>
-        </div>
-      </div>
-
-      <!-- 글쓰기 / 수정 폼 -->
-      <div class="card">
-        <h2 v-if="boardMode === 'create'">글쓰기</h2>
-        <h2 v-else>게시글 수정 (번호: {{ boardForm.idx }})</h2>
-
-        <!-- 🔥 여기 추가: 글쓰기/수정 에러/성공 -->
-        <div v-if="formError" class="alert alert-error">{{ formError }}</div>
-        <div v-if="formSuccess" class="alert alert-success">
-          {{ formSuccess }}
-        </div>
-        <!-- ---------------------------------- -->
-
-        <!-- submit 시 submitBoard() 호출 -->
-        <form @submit.prevent="submitBoard">
-          <div style="margin-bottom: 8px">
-            <label>
-              제목
-              <!-- boardForm(reactive) 의 title과 바인딩 -->
+              <label>아이디</label>
               <input
-                v-model="boardForm.title"
-                placeholder="제목을 입력하세요"
-                style="width: 100%; box-sizing: border-box"
-                maxlength="45"
+                type="text"
+                v-model="reg_user_id"
+                placeholder="아이디를 입력하세요"
               />
-            </label>
+
+              <label class="mt-8">비밀번호</label>
+              <input
+                type="password"
+                v-model="reg_user_password"
+                placeholder="비밀번호를 입력하세요"
+              />
+
+              <label class="mt-8">이메일</label>
+              <input
+                type="text"
+                v-model="reg_user_email"
+                placeholder="이메일을 입력하세요"
+              />
+
+              <div class="text-right mt-8">
+                <button class="secondary">회원가입</button>
+              </div>
+            </form>
           </div>
-          <div style="margin-bottom: 8px">
-            <label>
-              내용
-              <textarea
-                v-model="boardForm.content"
-                placeholder="내용을 입력하세요"
-              ></textarea>
-            </label>
-          </div>
-          <div class="row" style="justify-content: flex-end">
-            <!-- 수정 모드일 때만 취소 버튼 -->
+        </section>
+
+        <hr />
+
+        <!-- 글쓰기 -->
+        <section id="writeSection">
+          <div class="flex-between">
+            <h2>{{ write_edit_str }}</h2>
             <button
-              v-if="boardMode === 'edit'"
+              v-show="btn_edit_cancel_show"
+              @click="btn_edit_cancel"
               type="button"
               class="secondary"
-              @click="cancelEdit"
-              :disabled="loading"
             >
               취소
             </button>
-            <!-- 등록/수정 공용 버튼 -->
+          </div>
+
+          <p v-if="board_error_msg" class="alert-error">
+            {{ board_error_msg }}
+          </p>
+
+          <form @submit.prevent="write" class="card">
+            <p v-if="!isLogin" class="alert-error">
+              글쓰기는 로그인 후 이용 가능합니다.
+            </p>
+
+            <label>제목</label>
+            <input
+              id="titleInput"
+              type="text"
+              v-model="input_title"
+              :disabled="!isLogin"
+              maxlength="45"
+            />
+
+            <label class="mt-8">내용</label>
+            <textarea
+              v-model="textarea_content"
+              rows="6"
+              :disabled="!isLogin"
+            ></textarea>
+
+            <div class="text-right mt-8">
+              <button class="primary" :disabled="!isLogin">
+                {{ btn_write_show ? "등록" : "수정하기" }}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <hr />
+
+        <!-- 게시글 상세보기 -->
+        <section id="detailSection" v-if="selectedBoard">
+          <div class="card">
+            <div class="flex-between">
+              <h2>게시글 상세</h2>
+              <button type="button" class="secondary" @click="closeDetail">
+                닫기
+              </button>
+            </div>
+
+            <p class="detail-title">{{ selectedBoard.title }}</p>
+
+            <p class="detail-meta">
+              번호: {{ selectedBoard.idx }} · 작성자: {{
+              selectedBoard.fk_user_id }} · 작성일: {{ selectedBoard.regDate }}
+            </p>
+
+            <div class="detail-content">{{ selectedBoard.content }}</div>
+          </div>
+        </section>
+
+        <hr />
+
+        <!-- 게시판 -->
+        <section>
+          <div class="flex-between">
+            <h2>게시글 목록</h2>
+            <span class="board-summary">
+              총 {{ totalCount }} 건 ({{ currentPage }} / {{ totalPages }}
+              페이지)
+            </span>
+          </div>
+
+          <!-- 목록 -->
+          <table>
+            <thead>
+              <tr>
+                <th>번호</th>
+                <th>제목</th>
+                <th>내용</th>
+                <th>작성자</th>
+                <th>작성일</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-if="board_list.length === 0">
+                <td colspan="6">게시글이 없습니다.</td>
+              </tr>
+
+              <tr v-for="b in board_list" :key="b.idx">
+                <td>{{ b.idx }}</td>
+
+                <!-- 제목: 한 줄 말줄임 + 클릭 시 상세보기 -->
+                <td
+                  class="col-title clickable-cell"
+                  :title="b.title"
+                  @click="showDetail(b)"
+                >
+                  {{ b.title }}
+                </td>
+
+                <!-- 내용: 여러 줄 중 일부만 + 클릭 시 상세보기 -->
+                <td
+                  class="col-content clickable-cell"
+                  :title="b.content"
+                  @click="showDetail(b)"
+                >
+                  <div class="col-content-text">{{ b.content }}</div>
+                </td>
+
+                <td>{{ b.fk_user_id }}</td>
+                <td>{{ b.regDate }}</td>
+                <td>
+                  <button
+                    v-if="b.fk_user_id === login_user_id"
+                    class="secondary"
+                    @click="btn_edit_board(b)"
+                  >
+                    수정
+                  </button>
+                  <button
+                    v-if="b.fk_user_id === login_user_id"
+                    class="danger ml-4"
+                    @click="btn_delete_board(b.idx)"
+                  >
+                    삭제
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 페이징 -->
+          <div class="mt-16 pagination text-center">
             <button
-              class="primary"
-              type="submit"
-              :disabled="loading || !loginUserId"
-              style="margin-left: 6px"
+              class="secondary"
+              @click="goPage(currentPage - 1)"
+              :disabled="currentPage <= 1"
             >
-              {{ boardMode === 'create' ? '등록' : '수정 완료' }}
+              이전
+            </button>
+
+            <button
+              v-for="p in pageNumbers"
+              :key="p"
+              class="secondary"
+              @click="goPage(p)"
+              :disabled="p === currentPage"
+              :style="p === currentPage ? 'font-weight:bold;text-decoration:underline' : ''"
+            >
+              {{ p }}
+            </button>
+
+            <button
+              class="secondary"
+              @click="goPage(currentPage + 1)"
+              :disabled="currentPage >= totalPages"
+            >
+              다음
             </button>
           </div>
-          <div class="muted" style="margin-top: 4px">
-            ※ "로그인한 아이디가 있어야" 글 작성/수정 버튼이 활성화됩니다.
-          </div>
-        </form>
+        </section>
       </div>
     </div>
 
-    <!-- 기능 모듈 -->
-    <script src="/assets/js/auth.js"></script>
-    <script src="/assets/js/board.js"></script>
-    <!-- 실제 앱 생성 -->
-    <script src="/assets/js/app.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>
 ```
 
-## 2. vue.css
+## 3. `app.js`
+```js
+const { createApp, ref, onMounted, computed, nextTick } = Vue;
+
+createApp({
+  setup() {
+    /* ============================
+     *  로그인 상태
+     * ============================ */
+    const input_user_id = ref("");
+    const input_user_password = ref("");
+    const login_error_msg = ref("");
+    const isLogin = ref(false);
+    const login_user_id = ref("");
+
+    const login = async () => {
+      try {
+        const res = await user_login(
+          input_user_id.value,
+          input_user_password.value
+        );
+
+        if (!res.success) {
+          login_error_msg.value = res.message || "로그인에 실패했습니다.";
+        } else {
+          login_action(res.data || input_user_id.value);
+        }
+      } catch (err) {
+        login_error_msg.value = "로그인 오류";
+      }
+    };
+
+    const logout = async () => {
+      try {
+        const res = await user_logout();
+
+        if (!res.success) {
+          login_error_msg.value = res.message || "로그아웃 실패";
+        } else {
+          login_action(null);
+        }
+      } catch {
+        login_error_msg.value = "로그아웃 오류";
+      }
+    };
+
+    const login_action = (uid) => {
+      login_error_msg.value = "";
+      input_user_id.value = "";
+      input_user_password.value = "";
+
+      if (!uid) {
+        localStorage.removeItem("sess_user_id");
+        isLogin.value = false;
+        login_user_id.value = "";
+      } else {
+        localStorage.setItem("sess_user_id", uid);
+        isLogin.value = true;
+        login_user_id.value = uid;
+      }
+    };
+
+    /* ============================
+     *  회원가입 상태
+     * ============================ */
+    const reg_user_id = ref("");
+    const reg_user_password = ref("");
+    const reg_user_email = ref("");
+    const register_error_msg = ref("");
+    const register_success_msg = ref("");
+
+    const register = async () => {
+      register_error_msg.value = "";
+      register_success_msg.value = "";
+
+      if (
+        !reg_user_id.value.trim() ||
+        !reg_user_password.value.trim() ||
+        !reg_user_email.value.trim()
+      ) {
+        register_error_msg.value =
+          "아이디/비밀번호/이메일을 모두 입력해주세요.";
+        return;
+      }
+
+      try {
+        const res = await user_register(
+          reg_user_id.value,
+          reg_user_password.value,
+          reg_user_email.value
+        );
+
+        if (!res.success) {
+          register_error_msg.value = res.message || "회원가입에 실패했습니다.";
+        } else {
+          register_success_msg.value =
+            res.message || "회원가입이 완료되었습니다. 로그인 해주세요.";
+          // 입력 값 초기화
+          reg_user_id.value = "";
+          reg_user_password.value = "";
+          reg_user_email.value = "";
+        }
+      } catch (err) {
+        register_error_msg.value = "회원가입 중 오류가 발생했습니다.";
+      }
+    };
+
+    /* ★ 공통: 서버에서 "로그인" 관련 에러 오면 강제 로그아웃 + 안내 */
+    const handleAuthError = (res, targetErrorRef, defaultMsg) => {
+      if (
+        res &&
+        typeof res.message === "string" &&
+        res.message.includes("로그인")
+      ) {
+        // 세션 만료 or 미로그인 → 프론트도 로그아웃 상태로 동기화
+        login_action(null);
+        const msg = "로그인이 만료되었습니다. 다시 로그인 해 주세요.";
+        targetErrorRef.value = msg;
+        login_error_msg.value = msg; // 로그인 영역에도 같이 표시
+        return true; // 로그인 에러 처리했음
+      }
+      // 로그인 관련 에러가 아니면 false
+      targetErrorRef.value = res?.message || defaultMsg;
+      return false;
+    };
+
+    /* ============================
+     *  게시판 상태
+     * ============================ */
+    const board_error_msg = ref("");
+    const board_list = ref([]);
+
+    // 페이징 상태
+    const currentPage = ref(1);
+    const pageSize = ref(10);
+    const totalPages = ref(1);
+    const totalCount = ref(0);
+
+    // 글쓰기 form
+    const input_title = ref("");
+    const textarea_content = ref("");
+
+    const write_edit_str = ref("글쓰기");
+    const edit_board_info = ref(null);
+
+    const btn_edit_cancel_show = ref(false);
+    const btn_write_show = ref(true);
+
+    // 상세보기 대상
+    const selectedBoard = ref(null);
+
+    const resetForm = () => {
+      input_title.value = "";
+      textarea_content.value = "";
+      write_edit_str.value = "글쓰기";
+      btn_edit_cancel_show.value = false;
+      btn_write_show.value = true;
+      edit_board_info.value = null;
+    };
+
+    /* ============================
+     *  목록 조회(페이징)
+     * ============================ */
+    const get_board_list = async (pageNum = 1) => {
+      try {
+        const res = await get_board(null, pageNum, pageSize.value);
+
+        if (!res.success) {
+          // 목록 조회는 로그인 필요 없으니, 그냥 에러만 표시
+          board_error_msg.value = res.message || "게시글 조회 실패";
+          return;
+        }
+
+        const data = res.data;
+
+        currentPage.value = data.page;
+        totalPages.value = data.totalPages;
+        totalCount.value = data.totalCount;
+
+        board_list.value = data.items;
+        board_error_msg.value = "";
+      } catch {
+        board_error_msg.value = "게시글 로딩 오류";
+      }
+    };
+
+    // 페이지 번호 목록 계산 (10개씩)
+    const pageNumbers = computed(() => {
+      const pages = [];
+
+      const blockSize = 10; // 한 번에 보여줄 페이지 수
+      const current = currentPage.value;
+
+      const startPage = Math.floor((current - 1) / blockSize) * blockSize + 1;
+      let endPage = startPage + blockSize - 1;
+
+      if (endPage > totalPages.value) {
+        endPage = totalPages.value;
+      }
+
+      for (let p = startPage; p <= endPage; p++) {
+        pages.push(p);
+      }
+
+      return pages;
+    });
+
+    const goPage = (p) => {
+      if (p < 1 || p > totalPages.value) return;
+      get_board_list(p);
+    };
+
+    /* ============================
+     *  글쓰기/수정/삭제
+     * ============================ */
+    const write = async () => {
+      if (!isLogin.value) {
+        board_error_msg.value = "로그인 후 작성 가능";
+        return;
+      }
+
+      if (!input_title.value.trim() || !textarea_content.value.trim()) {
+        board_error_msg.value = "제목/내용을 입력하세요";
+        return;
+      }
+
+      // 안전하게 한 번 더 체크 (DB 45자)
+      if (input_title.value.length > 45) {
+        board_error_msg.value = "제목은 최대 45자까지 입력 가능합니다.";
+        return;
+      }
+
+      try {
+        // 수정 모드
+        if (edit_board_info.value) {
+          const target = edit_board_info.value;
+
+          const res = await put_board(
+            target.idx,
+            input_title.value,
+            textarea_content.value
+          );
+
+          if (!res.success) {
+            // ★ 로그인 만료 등 인증 에러 처리
+            if (handleAuthError(res, board_error_msg, "수정 실패")) {
+              return;
+            }
+            return;
+          }
+
+          // 목록 갱신
+          await get_board_list(currentPage.value);
+          resetForm();
+          return;
+        }
+
+        // 신규 등록
+        const res = await post_board(input_title.value, textarea_content.value);
+
+        if (!res.success) {
+          // ★ 로그인 만료 등 인증 에러 처리
+          if (handleAuthError(res, board_error_msg, "등록 실패")) {
+            return;
+          }
+          return;
+        }
+
+        // 등록 후 첫 페이지 다시 읽기
+        await get_board_list(1);
+        resetForm();
+      } catch {
+        board_error_msg.value = "글 저장 오류";
+      }
+    };
+
+    const btn_edit_board = (b) => {
+      if (b.fk_user_id !== login_user_id.value) {
+        board_error_msg.value = "본인 글만 수정 가능";
+        return;
+      }
+
+      edit_board_info.value = b;
+      write_edit_str.value = "글 수정";
+      btn_edit_cancel_show.value = true;
+      btn_write_show.value = false;
+
+      input_title.value = b.title;
+      textarea_content.value = b.content;
+
+      // DOM 업데이트 후 제목 input에 포커스 + 스크롤
+      nextTick(() => {
+        const titleEl = document.getElementById("titleInput");
+        if (titleEl) {
+          titleEl.focus();
+          titleEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+    };
+
+    const btn_delete_board = async (idx) => {
+      if (!confirm("삭제하시겠습니까?")) return;
+
+      try {
+        const res = await delete_board(idx);
+
+        if (!res.success) {
+          // ★ 로그인 만료 등 인증 에러 처리
+          if (handleAuthError(res, board_error_msg, "삭제 실패")) {
+            return;
+          }
+          return;
+        }
+
+        // 현재 페이지 다시 로딩
+        await get_board_list(currentPage.value);
+      } catch {
+        board_error_msg.value = "삭제 오류";
+      }
+    };
+
+    const btn_edit_cancel = () => resetForm();
+
+    /* ============================
+     *  상세보기
+     * ============================ */
+    const showDetail = (b) => {
+      selectedBoard.value = b;
+
+      nextTick(() => {
+        const detailEl = document.getElementById("detailSection");
+        if (detailEl) {
+          detailEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    };
+
+    const closeDetail = () => {
+      selectedBoard.value = null;
+    };
+
+    /* ============================
+     *  OnMounted
+     * ============================ */
+    onMounted(() => {
+      const saved = localStorage.getItem("sess_user_id");
+      if (saved) login_action(saved);
+
+      get_board_list(1);
+    });
+
+    /* ============================
+     *  반환
+     * ============================ */
+    return {
+      // 로그인
+      input_user_id,
+      input_user_password,
+      login_error_msg,
+      isLogin,
+      login_user_id,
+      login,
+      logout,
+
+      // 회원가입
+      reg_user_id,
+      reg_user_password,
+      reg_user_email,
+      register_error_msg,
+      register_success_msg,
+      register,
+
+      // 게시판
+      board_error_msg,
+      board_list,
+
+      // 페이징
+      currentPage,
+      totalPages,
+      totalCount,
+      pageNumbers,
+      goPage,
+
+      // 글쓰기
+      input_title,
+      textarea_content,
+      write_edit_str,
+      btn_edit_cancel_show,
+      btn_write_show,
+      write,
+      btn_edit_board,
+      btn_edit_cancel,
+      btn_delete_board,
+
+      // 상세보기
+      selectedBoard,
+      showDetail,
+      closeDetail,
+    };
+  },
+}).mount("#app");
+```
+
+## 4. style.css
 ```css
 * {
   box-sizing: border-box;
 }
+
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   margin: 0;
   padding: 0;
-  background: #f3f4f6;
-  color: #111827;
+  background-color: #f3f4f6;
 }
-header {
-  background: #111827;
-  color: #f9fafb;
-  padding: 16px 24px;
-}
-header h1 {
-  margin: 0;
-  font-size: 1.4rem;
-}
-header .sub {
-  font-size: 0.9rem;
-  color: #9ca3af;
-  margin-top: 4px;
-}
+
 .container {
-  max-width: 1000px;
-  margin: 24px auto;
-  padding: 0 16px 32px;
-}
-.section {
+  max-width: 960px;
+  margin: 40px auto;
   background: #ffffff;
   border-radius: 8px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 24px 32px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
 }
-.section h2 {
-  margin-top: 0;
-  font-size: 1.1rem;
+
+h1,
+h2 {
+  margin: 0 0 16px;
 }
-.section-desc {
-  font-size: 0.9rem;
-  color: #6b7280;
-  margin-bottom: 10px;
+
+hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 24px 0;
 }
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-.col {
-  flex: 1 1 0;
-  min-width: 260px;
-}
-label {
-  display: block;
-  font-size: 0.85rem;
-  margin: 6px 0 2px;
-}
-input,
-textarea {
-  width: 100%;
-  padding: 6px 8px;
-  border-radius: 4px;
-  border: 1px solid #d1d5db;
-  font-size: 0.9rem;
-}
-textarea {
-  min-height: 120px;
-  resize: vertical;
-}
-button {
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: 1px solid #2563eb;
-  background: #2563eb;
-  color: #ffffff;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-button.secondary {
-  border-color: #9ca3af;
-  background: #e5e7eb;
-  color: #111827;
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.muted {
-  font-size: 0.8rem;
-  color: #6b7280;
-}
-.toolbar {
+
+.flex-between {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
-.toolbar-right {
-  display: flex;
-  gap: 8px;
+
+.card {
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  margin-bottom: 16px;
 }
-.badge {
+
+.alert-error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.alert-success {
+  color: #15803d;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+label {
+  font-weight: 600;
   display: inline-block;
-  padding: 2px 6px;
-  font-size: 0.75rem;
-  border-radius: 999px;
-  background: #16a34a;
-  color: #f9fafb;
-  margin-left: 4px;
+  margin-bottom: 4px;
 }
+
+input[type="text"],
+input[type="password"],
+textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  font-size: 0.95rem;
+}
+
+textarea {
+  resize: vertical;
+}
+
+button {
+  padding: 6px 14px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+button.primary {
+  background-color: #2563eb;
+  color: white;
+}
+
+button.secondary {
+  background-color: #6b7280;
+  color: white;
+}
+
+button.danger {
+  background-color: #dc2626;
+  color: white;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  margin-top: 16px;
+  font-size: 0.95rem;
+  table-layout: fixed;
 }
+
 th,
 td {
   border: 1px solid #e5e7eb;
-  padding: 6px 8px;
-}
-th {
-  background: #f9fafb;
-  text-align: left;
-}
-.pagination {
-  margin-top: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.9rem;
-}
-.pagination-controls {
-  display: flex;
-  gap: 6px;
-}
-footer {
+  padding: 8px 10px;
   text-align: center;
-  font-size: 0.8rem;
-  color: #6b7280;
-  padding: 12px 0 24px;
 }
-pre {
-  background: #f9fafb;
-  border-radius: 4px;
-  padding: 8px;
+th:nth-child(6),
+td:nth-child(6) {
+  width: 120px;
+  white-space: nowrap;
+}
+
+td:nth-child(6) button {
+  padding: 4px 8px; /* 버튼 크기 조절 */
   font-size: 0.85rem;
-  overflow-x: auto;
+  white-space: nowrap;
+}
+
+thead {
+  background-color: #f9fafb;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+.mt-16 {
+  margin-top: 16px;
+}
+
+.pagination button {
+  margin: 0 4px;
+}
+
+/* 게시글 목록 상단 요약 텍스트 */
+.board-summary {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* 제목: 한 줄 말줄임 */
+.col-title {
+  text-align: left;
+  padding-left: 10px;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 내용 셀 – 폭만 관리 */
+.col-content {
+  text-align: left;
+  padding-left: 10px;
+  max-width: 320px;
+}
+
+/* 내용 텍스트: 2줄 말줄임 */
+.col-content-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 2줄까지만 표시 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
+  white-space: normal; /* 줄바꿈 허용 */
+  word-break: break-all; /* 단어 길어도 줄바꿈 */
+  line-height: 1.4; /* 줄 높이 */
+}
+
+/* 버튼 사이 간격 */
+.ml-4 {
+  margin-left: 4px;
+}
+
+/* 제목/내용 클릭 가능 표시 */
+.clickable-cell {
+  cursor: pointer;
+  color: #1d4ed8;
+}
+
+.clickable-cell:hover {
+  text-decoration: underline;
+}
+
+/* 상세보기 제목 */
+.detail-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+/* 상세보기 메타 정보 */
+.detail-meta {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+/* 상세보기 내용 (줄바꿈 유지) */
+.detail-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-top: 10px;
 }
 ```
 
 
-## 3. `auth.js`
-```js
-// /assets/js/auth.js
 
-(function () {
-  // Vue 3 CDN에서 제공하는 전역 객체
-  const { ref, reactive, watch, onMounted } = Vue;
 
-  /**
-   * 로그인 / 회원가입 로직을 묶어놓은 Composition 함수
-   * - jsonFetch : 공통 fetch 헬퍼
-   * - loading   : 로딩 상태 ref
-   */
-  function useAuth(jsonFetch, loading) {
-    const authMode = ref("login"); // 'login' | 'register'
-
-    const loginForm = reactive({
-      id: "",
-      password: "",
-    });
-    const loginUserId = ref(null);
-    const loginError = ref("");
-
-    const registerForm = reactive({
-      id: "",
-      password: "",
-      email: "",
-    });
-    const registerError = ref("");
-    const registerSuccess = ref("");
-
-    // 로그인
-    const login = async () => {
-      loginError.value = "";
-
-      if (!loginForm.id || !loginForm.password) {
-        loginError.value = "아이디와 비밀번호를 입력하세요.";
-        return;
-      }
-
-      loading.value = true;
-      try {
-        const { body } = await jsonFetch("/api/user/login", {
-          method: "POST",
-          body: JSON.stringify({
-            id: loginForm.id,
-            password: loginForm.password,
-          }),
-        });
-
-        if (!body.success) {
-          loginError.value = body.message || "로그인 실패";
-          return;
-        }
-
-        // 로그인 성공
-        loginUserId.value = loginForm.id;
-        loginForm.password = "";
-      } catch (e) {
-        loginError.value = "서버 오류: " + e.message;
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    // 로그아웃
-    const logout = () => {
-      loginUserId.value = null;
-    };
-
-    // 회원가입 (성공 시 자동 로그인)
-    const register = async () => {
-      registerError.value = "";
-      registerSuccess.value = "";
-
-      if (!registerForm.id || !registerForm.password || !registerForm.email) {
-        registerError.value = "아이디 / 비밀번호 / 이메일을 모두 입력하세요.";
-        return;
-      }
-
-      if (registerForm.id.length > 20) {
-        registerError.value = "아이디는 최대 20자까지 가능합니다.";
-        return;
-      }
-      if (registerForm.email.length > 45) {
-        registerError.value = "이메일은 최대 45자까지 가능합니다.";
-        return;
-      }
-
-      loading.value = true;
-      try {
-        const { body } = await jsonFetch("/api/user/register", {
-          method: "POST",
-          body: JSON.stringify({
-            id: registerForm.id,
-            password: registerForm.password,
-            email: registerForm.email,
-          }),
-        });
-
-        if (!body.success) {
-          registerError.value = body.message || "회원가입에 실패했습니다.";
-          return;
-        }
-
-        // 회원가입 성공 → 자동 로그인
-        loginUserId.value = registerForm.id;
-        registerSuccess.value = body.message || "회원가입이 완료되었습니다.";
-
-        // 폼 초기화
-        registerForm.id = "";
-        registerForm.password = "";
-        registerForm.email = "";
-      } catch (e) {
-        registerError.value = "서버 오류: " + e.message;
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    // loginUserId ↔ localStorage 동기화
-    watch(loginUserId, (newId) => {
-      if (newId) {
-        localStorage.setItem("loginUserId", newId);
-      } else {
-        localStorage.removeItem("loginUserId");
-      }
-    });
-
-    // 마운트 시 localStorage에서 로그인 복원
-    onMounted(() => {
-      const saved = localStorage.getItem("loginUserId");
-      if (saved) {
-        loginUserId.value = saved;
-      }
-    });
-
-    return {
-      authMode,
-      loginForm,
-      loginUserId,
-      loginError,
-      registerForm,
-      registerError,
-      registerSuccess,
-      login,
-      logout,
-      register,
-    };
-  }
-
-  // 전역에 노출 (app.js에서 사용)
-  window.useAuth = useAuth;
-})();
-```
-
-## 4. `board.js`
-```js
-// /assets/js/board.js
-
-(function () {
-  const { ref, reactive, computed, watch } = Vue;
-
-  /**
-   * 게시판(목록/페이징/글쓰기/수정/삭제) 로직
-   * - jsonFetch : 공통 fetch 헬퍼
-   * - loading   : 로딩 상태 ref
-   * - loginUserId : 로그인한 유저 id (ref)
-   */
-  function useBoard(jsonFetch, loading, loginUserId) {
-    // 게시판 목록 / 페이징
-    const boards = ref([]);
-    const expandedBoardId = ref(null);
-    const page = ref(1);
-    const size = ref(10);
-    const boardError = ref("");
-
-    // 글쓰기 / 수정 폼
-    const boardForm = reactive({
-      idx: null,
-      title: "",
-      content: "",
-    });
-    const boardMode = ref("create"); // 'create' | 'edit'
-    const formError = ref("");
-    const formSuccess = ref("");
-
-    const hasNext = computed(() => {
-      return boards.value.length === size.value;
-    });
-
-    // 게시판 목록 조회
-    const fetchBoards = async () => {
-      loading.value = true;
-      boardError.value = "";
-      try {
-        const url = `/api/board?page=${page.value}&size=${size.value}`;
-        const { body } = await jsonFetch(url, { method: "GET" });
-
-        if (!body.success) {
-          boardError.value = body.message || "목록 로딩 실패";
-          boards.value = [];
-          return;
-        }
-
-        boards.value = body.data || [];
-      } catch (e) {
-        boardError.value = "서버 오류: " + e.message;
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    const toggleContent = (idx) => {
-      if (expandedBoardId.value === idx) {
-        expandedBoardId.value = null;
-      } else {
-        expandedBoardId.value = idx;
-      }
-    };
-
-    const prevPage = () => {
-      if (page.value <= 1) return;
-      page.value--;
-    };
-
-    const nextPage = () => {
-      if (!hasNext.value) return;
-      page.value++;
-    };
-
-    const changeSize = () => {
-      page.value = 1;
-    };
-
-    // 글 수정 시작
-    const startEdit = (b) => {
-      boardMode.value = "edit";
-      boardForm.idx = b.idx;
-      boardForm.title = b.title || "";
-      boardForm.content = b.content || "";
-      formError.value = "";
-      formSuccess.value = "";
-    };
-
-    // 수정 취소
-    const cancelEdit = () => {
-      boardMode.value = "create";
-    };
-
-    // 글 등록/수정
-    const submitBoard = async () => {
-      formError.value = "";
-      formSuccess.value = "";
-
-      if (!loginUserId.value) {
-        formError.value = "로그인이 필요합니다.";
-        return;
-      }
-
-      if (!boardForm.title || !boardForm.content) {
-        formError.value = "제목/내용을 모두 입력하세요.";
-        return;
-      }
-
-      loading.value = true;
-      try {
-        if (boardMode.value === "create") {
-          const { body } = await jsonFetch("/api/board", {
-            method: "POST",
-            body: JSON.stringify({
-              title: boardForm.title,
-              content: boardForm.content,
-            }),
-          });
-
-          if (!body.success) {
-            formError.value = body.message || "등록 실패";
-            return;
-          }
-
-          formSuccess.value = "게시글이 등록되었습니다.";
-
-          // 폼 초기화
-          boardForm.title = "";
-          boardForm.content = "";
-
-          // 1페이지로 이동 후 목록 새로고침
-          page.value = 1;
-          await fetchBoards();
-        } else {
-          const { body } = await jsonFetch("/api/board/" + boardForm.idx, {
-            method: "PUT",
-            body: JSON.stringify({
-              title: boardForm.title,
-              content: boardForm.content,
-            }),
-          });
-
-          if (!body.success) {
-            formError.value = body.message || "수정 실패";
-            return;
-          }
-
-          formSuccess.value = "게시글이 수정되었습니다.";
-          await fetchBoards();
-          cancelEdit();
-        }
-      } catch (e) {
-        formError.value = "서버 오류: " + e.message;
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    // 삭제
-    const deleteBoard = async (idx) => {
-      if (!loginUserId.value) {
-        alert("로그인이 필요합니다.");
-        return;
-      }
-      if (!confirm("정말 삭제하시겠습니까?")) return;
-
-      loading.value = true;
-      try {
-        const { body } = await jsonFetch("/api/board/" + idx, {
-          method: "DELETE",
-        });
-
-        if (!body.success) {
-          boardError.value = body.message || "삭제 실패";
-          return;
-        }
-
-        await fetchBoards();
-      } catch (e) {
-        boardError.value = "서버 오류: " + e.message;
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    // page / size 바뀔 때마다 목록 자동 로딩
-    watch(
-      [page, size],
-      () => {
-        fetchBoards();
-      },
-      { immediate: true }
-    );
-
-    // boardMode가 create가 되면 폼 초기화
-    watch(boardMode, (mode) => {
-      if (mode === "create") {
-        boardForm.idx = null;
-        boardForm.title = "";
-        boardForm.content = "";
-        formError.value = "";
-        formSuccess.value = "";
-      }
-    });
-
-    return {
-      boards,
-      expandedBoardId,
-      page,
-      size,
-      boardError,
-      boardForm,
-      boardMode,
-      formError,
-      formSuccess,
-      hasNext,
-      fetchBoards,
-      prevPage,
-      nextPage,
-      changeSize,
-      startEdit,
-      cancelEdit,
-      submitBoard,
-      deleteBoard,
-      toggleContent,
-    };
-  }
-
-  window.useBoard = useBoard;
-})();
-```
-
-## 5. `app.js`
-```js
-// /assets/js/app.js
-
-(function () {
-  const { createApp, ref } = Vue;
-
-  /**
-   * 공통 JSON fetch 헬퍼
-   */
-  const createJsonFetch = () => {
-    return async (url, options = {}) => {
-      const opt = {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        ...options,
-      };
-
-      const res = await fetch(url, opt);
-      const text = await res.text();
-
-      let json;
-      try {
-        json = JSON.parse(text);
-      } catch (e) {
-        throw new Error("JSON 파싱 오류: " + text);
-      }
-      return { status: res.status, body: json };
-    };
-  };
-
-  createApp({
-    setup() {
-      const loading = ref(false);
-      const jsonFetch = createJsonFetch();
-
-      // 전역에 붙어 있는 useAuth / useBoard 사용
-      const auth = window.useAuth(jsonFetch, loading);
-      const board = window.useBoard(jsonFetch, loading, auth.loginUserId);
-
-      return {
-        loading,
-        ...auth,
-        ...board,
-      };
-    },
-  }).mount("#app");
-})();
-```
 
 
 ## 🧩 실습 / 과제

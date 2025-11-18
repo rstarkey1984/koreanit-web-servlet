@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>로그인 + 게시판 + 페이징</title>
+
+    <!-- 게시판 전용 CSS -->
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- API 호출 함수들 (서버 통신) -->
+    <script src="api.js"></script>
+  </head>
+
+  <body>
+    <div id="app">
+      <div class="container">
+        <!-- 로그인 / 회원가입 -->
+        <section>
+          <div class="flex-between">
+            <h1>로그인</h1>
+            <span v-if="isLogin">😊 {{ login_user_id }} 님 환영합니다.</span>
+          </div>
+
+          <p v-if="login_error_msg" class="alert-error">
+            {{ login_error_msg }}
+          </p>
+
+          <!-- 로그인 O -->
+          <form v-if="isLogin" @submit.prevent="logout" class="card">
+            <div class="flex-between">
+              <span>현재 로그인: <strong>{{ login_user_id }}</strong></span>
+              <button type="submit" class="secondary">로그아웃</button>
+            </div>
+          </form>
+
+          <!-- 로그인 X -->
+          <div v-else>
+            <!-- 로그인 폼 -->
+            <form @submit.prevent="login" class="card">
+              <h2 style="margin-top: 0; margin-bottom: 12px">로그인</h2>
+
+              <label>아이디</label>
+              <input type="text" v-model="input_user_id" />
+
+              <label class="mt-8">비밀번호</label>
+              <input type="password" v-model="input_user_password" />
+
+              <div class="text-right mt-8">
+                <button class="primary">로그인</button>
+              </div>
+            </form>
+
+            <!-- 회원가입 결과/에러 -->
+            <p v-if="register_error_msg" class="alert-error">
+              {{ register_error_msg }}
+            </p>
+            <p v-if="register_success_msg" class="alert-success">
+              {{ register_success_msg }}
+            </p>
+
+            <!-- 회원가입 폼 -->
+            <form @submit.prevent="register" class="card">
+              <h2 style="margin-top: 0; margin-bottom: 12px">회원가입</h2>
+
+              <label>아이디</label>
+              <input
+                type="text"
+                v-model="reg_user_id"
+                placeholder="아이디를 입력하세요"
+              />
+
+              <label class="mt-8">비밀번호</label>
+              <input
+                type="password"
+                v-model="reg_user_password"
+                placeholder="비밀번호를 입력하세요"
+              />
+
+              <label class="mt-8">이메일</label>
+              <input
+                type="text"
+                v-model="reg_user_email"
+                placeholder="이메일을 입력하세요"
+              />
+
+              <div class="text-right mt-8">
+                <button class="secondary">회원가입</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <hr />
+
+        <!-- 글쓰기 -->
+        <section id="writeSection">
+          <div class="flex-between">
+            <h2>{{ write_edit_str }}</h2>
+            <button
+              v-show="btn_edit_cancel_show"
+              @click="btn_edit_cancel"
+              type="button"
+              class="secondary"
+            >
+              취소
+            </button>
+          </div>
+
+          <p v-if="board_error_msg" class="alert-error">
+            {{ board_error_msg }}
+          </p>
+
+          <form @submit.prevent="write" class="card">
+            <p v-if="!isLogin" class="alert-error">
+              글쓰기는 로그인 후 이용 가능합니다.
+            </p>
+
+            <label>제목</label>
+            <input
+              id="titleInput"
+              type="text"
+              v-model="input_title"
+              :disabled="!isLogin"
+              maxlength="45"
+            />
+
+            <label class="mt-8">내용</label>
+            <textarea
+              v-model="textarea_content"
+              rows="6"
+              :disabled="!isLogin"
+            ></textarea>
+
+            <div class="text-right mt-8">
+              <button class="primary" :disabled="!isLogin">
+                {{ btn_write_show ? "등록" : "수정하기" }}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <hr />
+
+        <!-- 게시글 상세보기 -->
+        <section id="detailSection" v-if="selectedBoard">
+          <div class="card">
+            <div class="flex-between">
+              <h2>게시글 상세</h2>
+              <button type="button" class="secondary" @click="closeDetail">
+                닫기
+              </button>
+            </div>
+
+            <p class="detail-title">{{ selectedBoard.title }}</p>
+
+            <p class="detail-meta">
+              번호: {{ selectedBoard.idx }} · 작성자: {{
+              selectedBoard.fk_user_id }} · 작성일: {{ selectedBoard.regDate }}
+            </p>
+
+            <div class="detail-content">{{ selectedBoard.content }}</div>
+          </div>
+        </section>
+
+        <hr />
+
+        <!-- 게시판 -->
+        <section>
+          <div class="flex-between">
+            <h2>게시글 목록</h2>
+            <span class="board-summary">
+              총 {{ totalCount }} 건 ({{ currentPage }} / {{ totalPages }}
+              페이지)
+            </span>
+          </div>
+
+          <!-- 목록 -->
+          <table>
+            <thead>
+              <tr>
+                <th>번호</th>
+                <th>제목</th>
+                <th>내용</th>
+                <th>작성자</th>
+                <th>작성일</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-if="board_list.length === 0">
+                <td colspan="6">게시글이 없습니다.</td>
+              </tr>
+
+              <tr v-for="b in board_list" :key="b.idx">
+                <td>{{ b.idx }}</td>
+
+                <!-- 제목: 한 줄 말줄임 + 클릭 시 상세보기 -->
+                <td
+                  class="col-title clickable-cell"
+                  :title="b.title"
+                  @click="showDetail(b)"
+                >
+                  {{ b.title }}
+                </td>
+
+                <!-- 내용: 여러 줄 중 일부만 + 클릭 시 상세보기 -->
+                <td
+                  class="col-content clickable-cell"
+                  :title="b.content"
+                  @click="showDetail(b)"
+                >
+                  <div class="col-content-text">{{ b.content }}</div>
+                </td>
+
+                <td>{{ b.fk_user_id }}</td>
+                <td>{{ b.regDate }}</td>
+                <td>
+                  <button
+                    v-if="b.fk_user_id === login_user_id"
+                    class="secondary"
+                    @click="btn_edit_board(b)"
+                  >
+                    수정
+                  </button>
+                  <button
+                    v-if="b.fk_user_id === login_user_id"
+                    class="danger ml-4"
+                    @click="btn_delete_board(b.idx)"
+                  >
+                    삭제
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 페이징 -->
+          <div class="mt-16 pagination text-center">
+            <button
+              class="secondary"
+              @click="goPage(currentPage - 1)"
+              :disabled="currentPage <= 1"
+            >
+              이전
+            </button>
+
+            <button
+              v-for="p in pageNumbers"
+              :key="p"
+              class="secondary"
+              @click="goPage(p)"
+              :disabled="p === currentPage"
+              :style="p === currentPage ? 'font-weight:bold;text-decoration:underline' : ''"
+            >
+              {{ p }}
+            </button>
+
+            <button
+              class="secondary"
+              @click="goPage(currentPage + 1)"
+              :disabled="currentPage >= totalPages"
+            >
+              다음
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
