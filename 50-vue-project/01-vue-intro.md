@@ -971,6 +971,8 @@ board_list.value = [...uniqueItems, ...board_list.value];
 // 배열 안 요소 삭제
 board_list.value = board_list.value.filter((b) => b.idx !== idx);
 
+// 경고창 띄우기 : 예 하면 밑으로 진행
+if (!confirm("삭제하시겠습니까?")) return false;
 
 const vm = createApp({
   ...
