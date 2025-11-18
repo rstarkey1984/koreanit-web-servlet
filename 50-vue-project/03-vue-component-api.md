@@ -20,6 +20,25 @@ Vue의 핵심 철학은 “화면을 작은 컴포넌트로 나누고, 데이터
     ├── /vue-03/api.js
 ```
 
+## 페이징에서 항상 쓰는 4개 값
+
+> HTML 어떻게 보여줄지
+
+- page: 지금 몇 번째 페이지? (1, 2, 3, …)
+
+- size: 한 페이지에 몇 개씩 보여줄지 (10, 20…)
+
+- totalCount: 전체 글 수 (DB에서 COUNT(*))
+
+- totalPages: 전체 페이지 수
+→ totalPages = (totalCount + size - 1) / size (올림)
+
+> DB에서는 이걸로 offset, limit 계산:
+
+- offset = (page - 1) * size
+
+- limit = size
+
 ## 1. `api.js`
 ```js
 async function get_board(idx, page, size) {
@@ -447,7 +466,7 @@ async function user_logout() {
 ```js
 const { createApp, ref, onMounted, computed, nextTick } = Vue;
 
-createApp({
+const vm = createApp({
   setup() {
     /* ============================
      *  로그인 상태
@@ -633,17 +652,34 @@ createApp({
     const pageNumbers = computed(() => {
       const pages = [];
 
-      const blockSize = 10; // 한 번에 보여줄 페이지 수
+      const total = totalPages.value;
       const current = currentPage.value;
 
-      const startPage = Math.floor((current - 1) / blockSize) * blockSize + 1;
-      let endPage = startPage + blockSize - 1;
+      const left = 4; // 현재 페이지 왼쪽에 4개
+      const right = 4; // 현재 페이지 오른쪽에 4개
+      const maxCount = left + 1 + right; // 합계 = 9개
 
-      if (endPage > totalPages.value) {
-        endPage = totalPages.value;
+      // 기본 범위
+      let startPage = current - left;
+      let endPage = current + right;
+
+      // 왼쪽 범위 벗어나면
+      if (startPage < 1) {
+        endPage += 1 - startPage; // 부족한 만큼 오른쪽에 추가
+        startPage = 1;
       }
 
-      for (let p = startPage; p <= endPage; p++) {
+      // 오른쪽 범위 벗어나면
+      if (endPage > total) {
+        startPage -= endPage - total; // 부족한 만큼 왼쪽에 추가
+        endPage = total;
+      }
+
+      // 최소 보정
+      if (startPage < 1) startPage = 1;
+
+      // 페이지 번호 만들기
+      for (let p = startPage; p <= endPage && pages.length < maxCount; p++) {
         pages.push(p);
       }
 
