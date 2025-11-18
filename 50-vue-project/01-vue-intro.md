@@ -943,11 +943,17 @@ Vue에서는 HTML 이벤트를 @이벤트명 으로 연결한다.
 ## 추가내용
 
 ```js
-// 로컬 스토리지 값 넣기
-localStorage.setItem("sess_user_id", sess_user_id);
 
 // 로컬 스토리지 값 가져오기
 const sess_user_id = localStorage.getItem("sess_user_id");
+
+// 로컬 스토리지 값 넣기
+localStorage.setItem("sess_user_id", sess_user_id);
+
+
+
+const board_list = ref([]);
+const res = {data:[]};
 
 // filter 로 중복 내용 제거하기
 const uniqueItems = res.data.filter((newItem) => {
@@ -962,12 +968,20 @@ board_list.value.push(...uniqueItems);
 // 배열 합치기
 board_list.value = [...uniqueItems, ...board_list.value];
 
-setup() {
+// 배열 안 요소 삭제
+board_list.value = board_list.value.filter((b) => b.idx !== idx);
+
+
+const vm = createApp({
   ...
-  // mount 될때 한번 실행
-  onMounted(() => {
-    
-  });
+  setup() {
+    ...
+    // mount 될때 한번 실행 setup() 안에 넣으면됨
+    onMounted(() => {
+      
+    });
+    ...
+  }
   ...
 }
 ```
