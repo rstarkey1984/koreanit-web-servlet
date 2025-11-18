@@ -938,3 +938,36 @@ Vue에서는 HTML 이벤트를 @이벤트명 으로 연결한다.
 - `6.html` 에서 [추가] 버튼을 눌렀을때, `1. 과일 리스트 (기본 v-for)` 와 `3. 객체 배열 + key (권장)` 에도 입력한 내용 추가되도록 수정하기. 
 
     - `addTodo()` 함수를 수정하면됨.
+
+
+## 추가내용
+
+```js
+// 로컬 스토리지 값 넣기
+localStorage.setItem("sess_user_id", sess_user_id);
+
+// 로컬 스토리지 값 가져오기
+const sess_user_id = localStorage.getItem("sess_user_id");
+
+// filter 로 중복 내용 제거하기
+const uniqueItems = res.data.filter((newItem) => {
+  return !board_list.value.some(
+    (oldItem) => oldItem.idx === newItem.idx
+  );
+});
+
+// 배열에 배열 push
+board_list.value.push(...uniqueItems);
+
+// 배열 합치기
+board_list.value = [...uniqueItems, ...board_list.value];
+
+setup() {
+  ...
+  // mount 될때 한번 실행
+  onMounted(() => {
+    
+  });
+  ...
+}
+```
