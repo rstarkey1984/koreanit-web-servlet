@@ -22,8 +22,6 @@ Vue의 핵심 철학은 “화면을 작은 컴포넌트로 나누고, 데이터
 
 ## 페이징에서 항상 쓰는 4개 값
 
-> HTML 어떻게 보여줄지
-
 - page: 지금 몇 번째 페이지? (1, 2, 3, …)
 
 - size: 한 페이지에 몇 개씩 보여줄지 (10, 20…)
@@ -38,6 +36,53 @@ Vue의 핵심 철학은 “화면을 작은 컴포넌트로 나누고, 데이터
 - offset = (page - 1) * size
 
 - limit = size
+
+> 현재 페이지를 중심으로 양옆으로 일정 개수만큼 페이지 번호를 보여주는 페이징 방식
+```js
+// 페이지 번호 목록 계산 (10개씩)
+const pageNumbers = computed(() => {
+  const pages = [];
+
+  const total = totalPages.value;
+  const current = currentPage.value;
+
+  const left = 4; // 현재 페이지 왼쪽에 4개
+  const right = 4; // 현재 페이지 오른쪽에 4개
+  const maxCount = left + 1 + right; // 합계 = 9개
+
+  // 기본 범위
+  let startPage = current - left;
+  let endPage = current + right;
+
+  // 왼쪽 범위 벗어나면
+  if (startPage < 1) {
+    endPage += 1 - startPage; // 부족한 만큼 오른쪽에 추가
+    startPage = 1;
+  }
+
+  // 오른쪽 범위 벗어나면
+  if (endPage > total) {
+    startPage -= endPage - total; // 부족한 만큼 왼쪽에 추가
+    endPage = total;
+  }
+
+  // 최소 보정
+  if (startPage < 1) startPage = 1;
+
+  // 페이지 번호 만들기
+  for (let p = startPage; p <= endPage && pages.length < maxCount; p++) {
+    pages.push(p);
+  }
+
+  return pages;
+});
+```
+- 현재 페이지 기준으로 기본 범위 잡기 : (current - left) ~ (current + right)
+
+- 범위가 벗어나면 양쪽 보정 : (start<1 이면 end를 늘림, end>total이면 start를 앞으로 당김)
+
+- 총 개수를 maxCount(여기선 9개)로 유지
+
 
 ## 1. `api.js`
 ```js
