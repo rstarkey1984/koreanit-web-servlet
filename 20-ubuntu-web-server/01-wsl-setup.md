@@ -318,7 +318,7 @@ Windows 환경에서 WSL( Windows Subsystem Linux ) 을 활용해 리눅스 서�
 
 - ubuntu 사용자 추가
    ```bash
-   sudo adduser ubuntu && usermod -aG sudo ubuntu && su - ubuntu
+   sudo adduser test && sudo usermod -aG sudo test && sudo su - test
    ```
 
 

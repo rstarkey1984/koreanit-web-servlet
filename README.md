@@ -11,8 +11,6 @@
 ### 1️⃣ 웹 기초 
 1. [웹의 개념](10-web-basic/01-what-is-web.md)
 
-2. [브라우저에서 `www.google.com` 을 입력했을 때의 전체 흐름](10-web-basic/02-web-flow.md)
-
 ### 2️⃣ WSL을 이용해 Ubuntu 서버 개발환경 구축 
 1. [WSL로 리눅스 서버 개발환경 구축 ( WSL + Ubuntu + JDK ) ](20-ubuntu-web-server/01-wsl-setup.md)
 
